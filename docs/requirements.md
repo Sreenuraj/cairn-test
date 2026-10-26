@@ -1,4 +1,4 @@
-# cairn-test Requirements (v1.1)
+# cairn-test Requirements (v1.2)
 
 Companion to `plan.md` (design, source of truth) and `core-vision.md` (rationale and scope decisions). IDs are stable so tasks and tests can reference them. IDs that existed in v1 and were removed or deferred are listed in section 7.
 
@@ -8,9 +8,9 @@ Priority: **M** = must for v1, **S** = should, **C** = could. Rule: **no gate or
 
 - Primary user: the author, running locally and in CI. No servers, accounts, or hosted components.
 - Secondary user: coding agents acting in the same repository, through the CLI's JSON output (and later MCP). Agents are untrusted (threat model: `plan.md` section 10).
-- Everything that defines a test or its execution is a file in git. Approvals are signed files in git; the trust root lives outside the repository.
+- Everything that defines a test or its execution is a file in git. Approvals are signed files in git; the trust root lives outside the repository (a CI variable for enforcement).
 - No model is used anywhere in v1.
-- **v1 thesis:** correct DRIFT/FAIL/PASS classification, including compound cases, and lower maintenance effort including review time, compared with an LLM-assisted Newman suite.
+- **v1 thesis:** correct DRIFT/FAIL/PASS classification, including compound cases, and lower maintenance effort including review time, compared with an LLM-assisted Newman suite. The maintenance advantage is expected mainly from **triage** (structured DRIFT reports), then impact selection, then deterministic repair (`plan.md` section 1).
 
 ## 2. Functional requirements
 
@@ -66,20 +66,25 @@ Priority: **M** = must for v1, **S** = should, **C** = could. Rule: **no gate or
 | FR-R1 | `init` creates a project from an OpenAPI spec. | M |
 | FR-R2 | `record` executes explicit-`op` steps and writes traces as proposals with a plain-language rendering. | M |
 | FR-R3 | `review` shows proposals and diffs of approved files with labels (`expectation-removed`, `operator-loosened`, `scope-changed`, `binding-changed`, `quarantined`). | M |
-| FR-R4 | `approve` writes an approval covering content hashes of the test, trace, referenced data and fixtures, and config, signed with an SSH key (`ssh-keygen -Y sign`). | M |
+| FR-R4 | `approve` writes an approval covering content hashes of the test, trace, referenced data and fixtures, config, and project-local plugin source, signed with an SSH key (`ssh-keygen -Y sign`). | M |
 | FR-R5 | Heal proposals only for healable fields (`plan.md` section 11), containing old and new resolved step, the spec diff, and which expectations still evaluate `true` in a dry run. | M |
 | FR-R6 | A new required parameter produces a value request, never an invented value. A renamed or removed asserted field produces an expectation-change request, never a heal. | M |
-| FR-R7 | No heal proposal for a FAIL. Healing never changes expectations, data values, args, or test files (enforced by test). | M |
+| FR-R6a | Rename and move suggestions: when the spec diff shows exactly one same-type candidate for a removed asserted field (same object or nested), the expectation-change request carries a suggested JSONPath rewrite. It never changes the expected value or operator. With zero or several candidates, there is no suggestion. | M |
+| FR-R6b | OperationId rename with identical method, path, and schemas produces a heal proposal mapping the old id to the new one. | M |
+| FR-R7 | No heal proposal or suggestion for a FAIL. Healing never changes expectations, data values, args, or test files (enforced by test). | M |
 | FR-R8 | Applying any proposal requires `approve` (a new signature). | M |
 
 ### Verification integrity
 | ID | Requirement | P |
 |---|---|---|
-| FR-V1 | Strict mode verifies, before running, that every file a test depends on matches a hash in an approval whose signature verifies against the trust root; otherwise ERROR (`unapproved` or `tampered`). | M |
-| FR-V2 | The trust root (`allowed_signers`) is read from outside the repository (user config or CI-provided path); repo config cannot change it or disable verification. Strict mode has no bypass flag. | M |
+| FR-V1 | Strict mode verifies, before running, that every file a test depends on (test, trace, data, fixtures, config, project-local plugin source) matches a hash in an approval whose signature verifies against the trust root; otherwise ERROR (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`). | M |
+| FR-V2 | The trust root is read from outside the repository: `CAIRN_ALLOWED_SIGNERS` in CI, user config locally. Repo config cannot change it or disable verification. Strict mode has no bypass flag. | M |
 | FR-V3 | Identity is established only by signature; author names and kinds are labels. | M |
-| FR-V4 | `doctor` reports whether the threat-model assumptions hold (trust root location, key protection hints, strict mode in CI). | S |
-| FR-V5 | Tamper suite: automated tests that edit an expectation, loosen an operator, delete a test or step, change a data binding, quarantine a test, edit a trace, edit config, forge an approval, or replay an old approval against new content; strict mode must reject every case. | M |
+| FR-V4 | `doctor` reports the checkable assumptions: signing key type (warn unless security-key or Secure Enclave), trust-root source (warn when local), and whether the CI workflow pins the engine. | S |
+| FR-V5 | Tamper suite: automated tests that edit an expectation, loosen an operator, delete a test or step, change a data binding, quarantine a test, edit a trace, edit config, edit a project-local plugin, forge an approval, or replay an old approval against new content; strict mode must reject every case. | M |
+| FR-V6 | `approve` prints the subject, labels, and covered files before requesting a signature, and records the key type in the approval. | M |
+| FR-V7 | `verify` checks all approvals without running tests, for use as the first CI step. | M |
+| FR-V8 | Reference CI workflow (GitHub Actions) that pins the engine by digest or hash, reads the trust root from a CI variable, runs `verify` then `run --strict`, plus documented repository settings (ruleset on `main`, agent token without workflow permission). | S |
 
 ### Selection and impact
 | ID | Requirement | P |
@@ -115,9 +120,11 @@ Priority: **M** = must for v1, **S** = should, **C** = could. Rule: **no gate or
 |---|---|---|
 | FR-B1 | Reference target API (about 12 endpoints, stateful) with switchable seeded changes: contract, behavioral, benign, and compound, each labeled with the expected outcome per test. | M |
 | FR-B2 | Behavior catalog of N = 30 behaviors, implemented in cairn-test and Newman; REST Assured as a should. | M |
-| FR-B3 | All suites built LLM-assisted with the same assistant; wall-clock time, authored lines, and review time are logged per task. | M |
-| FR-B4 | Scoring script: classification confusion matrix, maintenance time including review, false heals, heal acceptance rate, create effort, speed. | M |
+| FR-B3 | All suites built and maintained LLM-assisted with the same assistant; wall-clock time, authored lines, and review time are logged per task. During maintenance every tool gets the same inputs (failing output and spec diff). | M |
+| FR-B4 | Scoring script: classification confusion matrix, triage time and fix time (both including review), false heals, masking suggestions, heal and suggestion acceptance rates, create effort, speed. | M |
+| FR-B8 | Pre-registration: behaviors, the 12-behavior core subset, seeded changes with expected outcome and mechanism, metrics, analysis, and success/kill thresholds are committed under a signed tag before any suite is written, and never edited. Deviations are logged and results reported against both versions. | M |
 | FR-B5 | Reproducible runs: seeded changes applied from a script; results written to a machine-readable file. | M |
+| FR-B9 | Suites are frozen under a signed tag before any seeded change is enabled; later suite edits count as maintenance work. | M |
 | FR-B6 | REST Assured suite. | S |
 | FR-B7 | Keploy comparison as context. | C |
 
@@ -142,12 +149,12 @@ A criterion passes only with evidence (artifacts, logs, benchmark output).
 1. **Authoring without code**: from an OpenAPI spec, the 30 catalog behaviors are expressed as YAML tests with explicit `op` steps, recorded, reviewed, approved, and passing, with no test code. Time is logged, including review.
 2. **Determinism**: strict replay of the approved suite gives identical outcomes and report ordering across 10 consecutive runs against a stable target.
 3. **Classification**: across all seeded changes, every test's outcome matches its expected label, including the compound cases in `plan.md` 6.3. In particular: contract-only changes are DRIFT and never FAIL; bug-only changes are FAIL and never DRIFT or PASS; benign changes are PASS; contract change plus bug is FAIL with drift detail.
-4. **No false heals**: zero false heals (formal definition, `plan.md` section 11) across all seeded changes.
-5. **Maintenance**: median time to green after contract changes, including review, is lower for cairn-test than for the LLM-assisted Newman suite, with the numbers and variance reported.
+4. **No false repairs**: zero false heals and zero masking suggestions (formal definitions, `plan.md` section 11) across all seeded changes.
+5. **Maintenance**: median triage time after contract changes, including review, is lower for cairn-test than for the LLM-assisted Newman suite by at least the pre-registered threshold, and median total time to green is not higher. Numbers and variance are reported, including where fix time alone does not win.
 6. **Explainability**: for every outcome in a benchmark run, `explain` produces the reason from stored artifacts only.
 7. **Extensibility**: a CLI-command step type is added using only the plugin contracts, with no core changes.
 8. **Integrity**: every case in the tamper suite (FR-V5) is rejected by strict mode.
-9. **Honest report**: the benchmark report states where cairn-test does not win (expected: create effort, raw speed, uncovered bugs, spec-diff selection).
+9. **Honest report**: the benchmark report states where cairn-test does not win (expected: create effort, raw speed, uncovered bugs, spec-diff selection, fix time on simple request-side changes) and lists every pre-registration deviation.
 
 ## 5. Out of scope for v1
 
@@ -157,7 +164,9 @@ See `plan.md` section 16. Summary: skip caching, models and intent steps, explor
 
 - The system under test provides an OpenAPI 3.0/3.1 spec, or one can be produced.
 - Test environments allow per-worker isolated data, or tests declare `hermetic: false`.
-- Humans approve with an SSH key that agent sessions cannot use (hardware key or confirm-on-use). CI runs strict mode with a trust root the agent cannot modify, and CI config changes require human review.
+- Humans approve with an SSH key that needs a physical action per signature: a FIDO2 `ed25519-sk` key (recommended) or a Secure Enclave key with Touch ID. A passphrase-protected key file never loaded into an ssh-agent is tolerated with a warning. Keys usable without a human action are unsupported (`plan.md` 10.2).
+- The agent runs as the same OS user and can modify anything local, including the installed engine and the local trust root. Local verification is advisory.
+- Enforcement happens in CI: a pinned engine, the trust root in a CI variable, and an agent git credential with no workflow permission and no ability to push to `main` (`plan.md` 10.3).
 - OpenSSH 8.2+ is available for `ssh-keygen -Y sign/verify`.
 
 ## 7. Changes from v1
@@ -176,3 +185,4 @@ See `plan.md` section 16. Summary: skip caching, models and intent steps, explor
 | FR-G1 to G4 (v1) | Replaced by FR-G1 to G3; agent permissions are enforced by signatures, not by interface roles. |
 | FR-B6 (v1) scripted agent | Replaced by the tamper suite (FR-V5) as a correctness test, not a benchmark claim. |
 | Acceptance 10 agent use | Covered by FR-G1 and FR-G2; MCP is S. |
+| (v1.2) | Added FR-R6a, FR-R6b, FR-V6 to V8, FR-B8, FR-B9; tightened FR-R4, FR-V1, V2, V4, V5, FR-B3, B4, and acceptance 4, 5, and 9. |

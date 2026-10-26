@@ -6,7 +6,7 @@ Tests are **data**. How to execute them is a **recorded, approved trace**. Repla
 
 API testing is the first plugin; UI, mobile, and CLI plugins follow on the same core.
 
-**Status:** design v1.1 (specification). No engine code yet.
+**Status:** design v1.2 (specification). No engine code yet.
 
 **What v1 must prove:** correct DRIFT/FAIL/PASS classification across seeded contract changes, bugs, benign changes, and combinations of them, plus lower maintenance effort (review time included) than an LLM-assisted Newman suite.
 

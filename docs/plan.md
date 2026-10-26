@@ -2,7 +2,7 @@
 
 Name: **cairn-test**. A cairn is a stack of stones that marks a trail so others can follow the same path, which is the core idea: record a path once, then follow it reliably. The `-test` suffix is deliberate: the bare name `cairn` is already used by several other tools, including ones that install a `cairn` command, a `cairn.*` config file, and a `.cairn/` directory.
 
-Status: design v1.1. Scope decisions and their rationale are in `core-vision.md` section 5. This file is the source of truth for the design.
+Status: design v1.2. Scope decisions and their rationale are in `core-vision.md` section 5. This file is the source of truth for the design.
 
 ## 1. Thesis
 
@@ -12,9 +12,16 @@ cairn-test treats a test as **data** and the way to execute it as a **recorded, 
 
 **What v1 must prove (single thesis):**
 1. **Correct classification.** Contract changes surface as DRIFT, behavioral bugs as FAIL, benign changes as PASS, and compound cases follow the precedence rules, across a seeded benchmark.
-2. **Lower maintenance.** Time to green after contract changes, *including human review time*, is clearly lower than an LLM-assisted Newman suite.
+2. **Lower maintenance.** Time to green after contract changes, *including human review time*, is clearly lower than an LLM-assisted Newman suite that is given the same spec diff.
 
-Supporting property, shipped and tested but not a benchmark claim: **tamper-evidence**. In strict mode, no expectation, trace, or config that a human has not signed can influence a result.
+Where the maintenance advantage is expected to come from (no model in v1), in order of expected size:
+1. **Triage.** A contract change produces DRIFT with the exact observation diff and the list of affected expectations, instead of a wall of red assertion failures that a person (or assistant) has to sort into "changed" and "broken".
+2. **Impact.** The spec diff selects exactly the affected tests.
+3. **Deterministic repair.** Request-side heals (path, method, parameter placement, operationId rename) and rename/move suggestions for response fields, each applied only after approval.
+
+Fix time is expected to be only modestly faster than an LLM-assisted competitor; triage is where the claim must hold. The benchmark measures triage time and fix time separately (section 15). If triage shows no advantage, the thesis fails.
+
+Supporting property, shipped and tested but not a benchmark claim: **tamper-evidence**. When strict mode runs in CI with a pinned engine and a trust root the agent cannot change, no expectation, trace, config, or project plugin that a human has not signed can influence a result (threat model: section 10).
 
 Not claimed for v1: lower effort to create tests (business-rule expectations cost the same to think up in any tool), and faster runs through skipping.
 
@@ -29,7 +36,7 @@ Long-term positioning (see `core-vision.md`): a domain-neutral verification laye
 5. No model in v1. Execution, healing, drafting, and verdicts are deterministic. Model-assisted resolution is a post-v1 layer that will only ever produce proposals.
 6. Every outcome is explainable afterwards from stored artifacts alone.
 7. The core knows nothing about HTTP, browsers, or devices. Capabilities come from plugins.
-8. Tamper-evident, not tamper-proof: approvals are signed by a human key; strict mode refuses anything unsigned or altered. The limits of this are stated explicitly (section 10).
+8. Tamper-evident, not tamper-proof: approvals are signed with a human key that needs a physical action per signature; strict mode refuses anything unsigned or altered. The guarantee holds where verification runs out of the agent's reach (CI with a pinned engine); locally it is advisory. Limits are stated explicitly (section 10).
 9. Machine-friendly: every command has structured JSON output and documented exit codes, so coding agents can use it without scraping text.
 
 ## 3. Core concepts
@@ -173,6 +180,7 @@ project/
   envs/staging.yaml
   data/customers.yaml
   fixtures/                 # reusable setup/teardown steps, as data
+  plugins/                  # optional project-local plugins (code, covered by approvals)
   tests/create-order.test.yaml
   traces/create-order.trace.yaml
   approvals/create-order.approval.yaml     # + .sig
@@ -181,7 +189,7 @@ project/
   .cairn-test/              # gitignored: events DB, evidence
 ```
 
-Trust root (outside the repository): `allowed_signers` (SSH format) at a path set by user-level config (default `~/.config/cairn-test/allowed_signers`) or supplied by CI.
+Trust root (outside the repository): `allowed_signers` (SSH format). In CI it comes from a CI variable (`CAIRN_ALLOWED_SIGNERS`) that the agent's credentials cannot edit. Locally it comes from user-level config (default `~/.config/cairn-test/allowed_signers`) and is advisory only (section 10).
 
 ### Naming conventions
 
@@ -274,7 +282,8 @@ covers:                                 # sha256 of normalized file content
   traces/create-order.trace.yaml: 88a0...
   data/customers.yaml: 0b7c...
   cairn-test.yaml: 5f21...
-approver: { name: you, key: "SHA256:Xk3..." }
+  plugins/discount_rule.py: 9e3a...     # project-local plugin code the test uses
+approver: { name: you, key: "SHA256:Xk3...", key_type: sk-ssh-ed25519@openssh.com }
 at: 2026-11-02T10:05:00Z
 labels: [new-test]                     # review labels (e.g. weakened, scope-changed); informational
 ```
@@ -294,18 +303,61 @@ Code-diff selection (which needs coverage instrumentation) is post-v1. Competito
 
 ## 10. Approvals, identity, and the threat model
 
-**Threat model (v1).** A coding agent working in the repository *can* run shell commands, edit any file in the repo, and call any CLI command. It *cannot* use the human's signing key, modify the trust root (`allowed_signers` outside the repo), or merge changes to CI configuration (protected by branch rules or CODEOWNERS). Out of scope: a compromised human machine, or a signing key the agent can use.
+### 10.1 Threat model (v1)
 
-**Identity.** Established only by signatures. A human approves with an SSH key that the agent's session cannot use (hardware key with touch, or a passphrase-protected key not loaded in the agent's ssh-agent, or `ssh-add -c` confirmation). Names, flags, and "author kind" fields are labels, not proof.
+The agent runs as the same OS user as the human, in the same repository.
 
-**Mechanism.**
-- `cairn-test approve <id>` computes content hashes of everything the result depends on (test file, trace, referenced data and fixtures, config) and writes a signed approval record.
-- In strict mode the core verifies, before running, that every file a test depends on matches a hash in an approval whose signature verifies against the trust root. Any mismatch is ERROR (`unapproved` or `tampered`), and the run fails.
-- Because the config is covered, verification cannot be turned off by editing repo config. Strict mode has no bypass flag.
+| The agent can | The agent cannot (assumed) |
+|---|---|
+| Run any shell command as the user | Produce a signature with the human's key (10.2) |
+| Edit any file in the repo, in `~/.config`, and in the local cairn-test install | Edit CI workflow files or CI variables, or push to `main` (10.3) |
+| Run any CLI command, including `approve` | Change which cairn-test version CI runs (pinned in the workflow) |
+| Push branches and open pull requests | |
 
-**What any edit means.** Any change to an approved file, including expectations, data bindings, `after:` scope, steps an expectation depends on, or quarantine, invalidates the approval and needs a new signature. Review shows labels to help the human (`expectation-removed`, `operator-loosened`, `scope-changed`, `binding-changed`, `quarantined`), but security does not depend on the labels being complete.
+Consequence: **anything that runs on the human's machine can be tampered with by the agent**, including the local trust root and the installed engine. Local strict mode is therefore *advisory*. The guarantee comes from **CI**, which runs a pinned engine against a trust root the agent cannot reach.
 
-**Honest limits.** Tamper-evident, not tamper-proof. If the agent can use the signing key, or CI does not run strict mode against a trust root the agent cannot change, the guarantee is gone. These assumptions are documented in the CLI's `doctor` output.
+Out of scope: a compromised CI provider, a compromised human, and a human who confirms a signature without reading what is being signed.
+
+### 10.2 Where the signing key lives
+
+"The agent cannot use the key" is only true for keys that need a physical human action on **every** signature:
+
+| Key setup | Supported? | Why |
+|---|---|---|
+| FIDO2 security key, `ed25519-sk` (touch per signature; PIN with `-O verify-required`) | **Recommended** | The private key never leaves the device; each signature needs a touch. |
+| Secure Enclave key with Touch ID per use (e.g. Secretive on macOS) | **Supported** | Not exportable; each signature needs Touch ID. |
+| Passphrase-protected key file, never added to an ssh-agent, passphrase typed per approval | Tolerated, with a warning | The agent can read the file but cannot use it without the passphrase. Weaker: offline guessing is possible. |
+| Key loaded in an ssh-agent without per-use confirmation, or an unencrypted key file | **Not supported** | Anything running as the user can sign. |
+| `ssh-add -c` confirmation | Not recommended | Depends on an askpass dialog that is easy to misconfigure. |
+
+`approve` records the key type in the approval and warns when it is not a security-key type. The CI trust root should list only keys of the supported kinds. CI never holds a signing key; it only verifies.
+
+**Unexpected prompts.** The agent can run `approve` itself, which makes the key ask for a touch. Rule for humans: touch only when you started the approval yourself, after `approve` has shown the summary of what will be signed. `approve` always prints the subject, labels, and covered files before asking for the signature.
+
+### 10.3 Where verification is enforced
+
+For the guarantee to hold in CI:
+- The workflow installs cairn-test **pinned in the workflow file** (container image digest or hash-pinned package), not from a repo lockfile the agent can edit.
+- The trust root comes from a CI variable (`CAIRN_ALLOWED_SIGNERS`).
+- The agent's git credential is a fine-grained token or deploy key that can push branches but has **no workflow permission, no admin rights, and cannot push to `main`** (repository ruleset).
+- `main` requires the strict CI check to pass.
+
+Locally, `cairn-test verify` and strict runs give the same answers, but treat them as a convenience: an agent that wanted to fake them could.
+
+### 10.4 Mechanism
+
+- `cairn-test approve <id>` shows what will be signed. It then computes content hashes of everything the result depends on: the test file, trace, referenced data and fixtures, config, and **the source of any project-local plugin** the test uses. Finally it writes a signed approval record.
+- Before running, strict mode verifies that every one of those files matches a hash in an approval whose signature verifies against the trust root. Any mismatch is ERROR (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`), and the run fails.
+- Because config and project plugins are covered, editing repo files cannot weaken verification. Strict mode has no bypass flag.
+- Plugins installed as packages are covered by the pinned engine in CI, not by approvals.
+
+### 10.5 What any edit means
+
+Any change to an approved file invalidates the approval and needs a new signature. That includes expectations, data bindings, `after:` scope, steps an expectation depends on, quarantine, and plugin code. Review shows labels to help the human (`expectation-removed`, `operator-loosened`, `scope-changed`, `binding-changed`, `quarantined`, `plugin-changed`), but security does not depend on the labels being complete.
+
+### 10.6 Honest limits
+
+Tamper-evident, not tamper-proof, and only within 10.1. The guarantee is gone if any of these hold: the key can sign without a human action; CI does not run strict mode with a pinned engine and a protected trust root; or the human signs without reading. `doctor` reports the assumptions it can check: key type, trust-root source, and whether the CI workflow pins the engine.
 
 ## 11. Healing (deterministic, spec-diff based)
 
@@ -317,12 +369,18 @@ Healing is driven by the spec diff, not a model.
 
 Cases:
 - Path, method, or parameter location changed, same operationId → **heal proposal**: old and new resolved step, the spec diff, and which expectations still evaluate `true` against a dry run.
+- OperationId renamed while method, path, and schemas stay identical → heal proposal mapping the old operationId to the new one.
 - New required parameter → **value request**: a human must supply the value in the test's data. Never invented.
-- Asserted response field renamed or removed → **expectation-change request** for human review. Never applied by heal.
+- Asserted response field renamed or moved → **expectation-change request with a suggested edit**. The spec diff shows a field removed and a field of the same type added, in the same object (rename) or in a nested object (move). The suggestion rewrites only the JSONPath, never the expected value or operator. It is labeled as an expectation change and needs a signature like any other edit.
+- Asserted response field removed with no candidate, or type changed → expectation-change request without a suggestion.
 - Operation removed with no mapping → DRIFT, no proposal.
-- Any FAIL → no heal proposal.
+- Any FAIL → no heal proposal and no suggestion.
 
-**False heal (formal):** a proposal which, if approved, would change an expectation, a data value, or an arg, or would turn a seeded behavioral bug into PASS.
+If several fields could be the rename target, there is no suggestion. Precision matters more than coverage here.
+
+**False heal (formal):** a *heal proposal* which, if approved, would change an expectation, a data value, or an arg, or would turn a seeded behavioral bug into PASS.
+
+**Masking suggestion (formal):** an expectation-change suggestion which, if approved, would turn a seeded behavioral bug into PASS. Both counts must be zero.
 
 ## 12. Observability
 
@@ -346,7 +404,8 @@ All commands support `--json`. Exit codes are documented and stable.
 | `draft` (optional in v1) | Deterministically draft tests from the spec (status, schema, required-field negatives, auth) into `proposals/`. |
 | `record [test]` | Execute and write or refresh traces as proposals. |
 | `review` | Walk through proposals and diffs with labels; approve, edit, reject. |
-| `approve <id>` | Sign an approval for the current content. |
+| `approve <id>` | Show what will be signed, then sign an approval for the current content. |
+| `verify` | Check every approval against the trust root without running tests (CI runs this first). |
 | `run [--strict] [--tags ..] [--changed]` | Execute with planning and parallelism. |
 | `impact --spec-diff a b` | Show affected tests and why. |
 | `heal` | Create heal proposals and value requests from a spec diff. |
@@ -385,25 +444,38 @@ An MCP server exposing `run`, `explain`, `impact`, `status`, and `propose` over 
 
 **Target API:** a small stateful reference service (about 12 endpoints: auth, products, orders, refunds) with an OpenAPI spec and switchable seeded changes.
 
+**Pre-registration.** Before any suite is written, `bench/preregistration.md` fixes:
+- the 30 behaviors, and the core subset of 12 used if checkpoint E1 falls back (`tasks.md`);
+- every seeded change, with the expected outcome per test and the expected repair mechanism;
+- the metrics and the analysis (medians over at least 3 runs);
+- the success and kill thresholds.
+
+It is committed with a signed tag (`prereg-v1`) and not edited afterwards. Any change goes into `bench/deviations.md` with a reason and date, and results are reported against both the original and the amended version.
+
+Order of work: write the pre-registration; write all suites against the unchanged target and tag them (`suites-frozen`, signed); only then switch on seeded changes, by script. Edits to a suite after that point are the measured maintenance work, never tuning. Maintenance runs are not blind (the same person sees the changes in every tool), but they are symmetric.
+
 **Behavior catalog:** a fixed list of N = 30 behaviors (`bench/behaviors.yaml`), each implemented in every tool. "Trusted" means every expectation was reviewed by a human; review time is logged.
 
-**Comparators:** Newman (required) and REST Assured (should). Both are built **LLM-assisted with the same coding assistant and time logging** as cairn-test, because that is the realistic 2026 baseline. Keploy is optional context.
+**Comparators:** Newman (required) and REST Assured (should). Both are built and maintained **LLM-assisted, with the same coding assistant and time logging** as cairn-test, because that is the realistic 2026 baseline. During maintenance every tool gets the same inputs: the failing run output and the spec diff. Keploy is optional context.
 
-**Seeded changes (each labeled with the expected outcome per test):**
-- Contract: rename a response field, change a type, add a required parameter, move a parameter, change a path, remove an endpoint.
+**Seeded changes (each labeled with the expected outcome per test and the expected mechanism):**
+- Contract, request side: move a parameter (query to body), change a path, rename an operationId, add a required parameter. Expected: heal, heal, heal, value request.
+- Contract, response side: rename a field, move a field into a nested object, change a type, remove an endpoint. Expected: suggestion, suggestion, request without a suggestion, no proposal.
 - Behavioral bugs: wrong total, missing validation, authorization bypass, pagination off-by-one, refund over-limit.
 - Benign: new optional field, reordered fields, changed timestamps.
-- Compound: contract change + bug in the same test; additive change + bug; drift in step 1 blocking step 3.
+- Compound: a contract change and a bug in the same test; a rename plus a bug on the renamed field; an additive change plus a bug; drift in step 1 blocking step 3.
 
 **Metrics:**
 1. **Classification accuracy** (headline): confusion matrix of expected vs actual outcome per test per seeded change.
-2. **Maintenance effort** (headline): wall-clock time to green after each contract change, including human review, for every tool.
-3. **Heal quality**: false heals (formal definition, section 11) must be zero; heal acceptance rate.
+2. **Maintenance effort** (headline), measured in two parts for every tool, both including human review:
+   - *Triage time*: from the red run to a correct written list of which tests are affected, and whether each is a contract change or a defect.
+   - *Fix time*: from triage to green, with every edit approved (cairn-test) or reviewed (the others).
+3. **Repair quality**: false heals and masking suggestions (section 11) must both be zero; heal and suggestion acceptance rates.
 4. **Create effort** (reported, not claimed): time and authored lines including review.
 5. **Speed** (reported): full-suite wall clock and `--changed` run time.
 6. **Integrity** (pass/fail check): the tamper suite (requirements FR-V5) is fully rejected in strict mode.
 
-Expected non-wins: create effort, raw request speed, bugs not covered by any expectation, spec-diff selection (others can do it too).
+Expected non-wins: create effort, raw request speed, bugs not covered by any expectation, spec-diff selection (others can do it too), and fix time on simple request-side changes (an LLM-assisted competitor can fix a URL quickly too).
 
 ## 16. Out of scope for v1 (post-v1 backlog)
 
@@ -416,7 +488,11 @@ Skip caching and CACHED-PASS (appendix A); `intent` steps and model-assisted res
 | The DRIFT/FAIL split breaks on compound cases | Normative compound table (6.3) as test fixtures; compound cases in the benchmark. |
 | Shape-based observation misses semantic change | Stated limit: behavior is covered only by expectations; DRIFT is about shape, FAIL is about behavior. |
 | Approval fatigue leads to blind signing | Small, labeled diffs; batch approvals for additive updates; review time is measured. |
-| Agent can use the signing key | Documented requirement (hardware key, confirm-on-use); `doctor` checks; stated as an honest limit. |
+| Agent can use the signing key | Only keys that need a touch or Touch ID per signature are supported (10.2); `approve` records the key type and warns; stated as an honest limit. |
+| Agent tampers with the local engine or trust root | Local verification is advisory. The guarantee comes from CI, with a pinned engine, a trust root in a CI variable, and an agent credential that has no workflow or `main` access (10.3). |
+| No maintenance advantage without a model | Triage and fix time measured separately; the thesis rests on triage and is killed if triage shows no advantage. |
+| Benchmark tuned after seeing results | Signed pre-registration tag before any suite; suites frozen before seeded changes; deviations log; results reported against the original and amended versions. |
+| Rename suggestions guess wrong | Only unambiguous same-type candidates; the rewrite changes only the JSONPath; masking suggestions must be zero. |
 | Core leaks API concepts | Fake plugin tests the core; CLI step implemented as a second plugin; UI paper sketch lists contract pressures. |
 | Pull toward scripting | Typed plugins as the only escape hatch; no inline scripts. |
 | Non-hermetic stateful tests break parallelism | `{run.uid}` isolation built-ins; `hermetic: false` runs serially. |

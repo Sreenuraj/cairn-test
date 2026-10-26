@@ -1,4 +1,4 @@
-# cairn-test Tasks (v1.1)
+# cairn-test Tasks (v1.2)
 
 Companion to `plan.md`, `requirements.md`, and `core-vision.md`. Each task lists the requirement IDs it satisfies and a done-check. Phases run in order unless noted; tasks inside a phase can run in parallel unless noted.
 
@@ -8,15 +8,46 @@ Rules:
 
 Legend: `[ ]` todo, `[~]` in progress, `[x]` done.
 
-## Timebox and checkpoints
+## Timebox, checkpoints, and kill criteria
 
-| Checkpoint | Scope | Budget | Continue only if |
+E1 is kept deliberately small. **Signing, approvals, strict mode, and the tamper suite are not in E1** (they are the likeliest overrun and don't test the thesis). E1 uses the 12-behavior core subset, not all 30.
+
+| Checkpoint | Scope | Budget | Hard stop |
 |---|---|---|---|
-| **E1: classification experiment** | Phases 0–2 plus T6.1, T6.2, T6.3 | about 4 weeks | Every seeded change, compound cases included, gives the labeled outcome for the hand-written explicit-`op` suite. |
-| **E2: maintenance experiment** | Phases 3–4 plus T6.4, T6.5, T6.7 | about 4 more weeks | Median time to green after contract changes, review included, is lower than the LLM-assisted Newman suite on a first run. |
-| **v1 complete** | Phases 5–7 | about 2–3 more weeks | Acceptance criteria 1 to 9 met with evidence. |
+| **E1: classification** | Phase 0, Phase 1, Phase 2, and T6.1, T6.2 for the 12-behavior core subset. Tests are hand-written YAML run in dev mode. | 4 weeks | 6 weeks |
+| **E2: maintenance** | Phase 3 (approvals, strict, tamper suite), Phase 4 (healing, suggestions, impact), all 30 behaviors, the Newman suite, and the scoring script | 5 weeks | 7 weeks |
+| **v1 complete** | Phases 5–7 | 3 weeks | 4 weeks |
 
-If a checkpoint fails, stop and write down why before changing the design.
+### E1 kill criteria (decided now, recorded in the pre-registration)
+
+Run the pre-registered seeded changes against the 12-behavior subset.
+
+- **Continue** if every case matches its label: contract-only, bug-only, benign, and all compound cases.
+- **Stop and rethink the outcome model** if *any* compound case misclassifies and the fix would need one of these:
+  - a per-test or per-assertion special case;
+  - a rule outside `plan.md` 6.2 and 6.3;
+  - knowledge an observation cannot carry (e.g. the meaning of a field rather than its shape).
+
+  In that case, write `docs/e1-postmortem.md` before changing anything.
+- **Fix and re-run once** if misclassifications are implementation bugs that the existing rules already cover. A second failed run means stop.
+- **Stop** if a benign change (new optional field, reordered fields, timestamps) produces DRIFT that the additive rules can't express.
+
+### Fallback if E1 slips
+
+At week 4, if E1 is not done:
+1. Cut T0.7 (UI paper sketch) to a one-page list of open questions.
+2. Replace the OpenAPI ingestion work with a minimal subset: no `oneOf`/`allOf`, local `$ref` only.
+3. Run E1 against a 6-behavior subset, keeping every compound case. Classification is the thing being tested, not breadth.
+
+At week 6 (hard stop): run whatever classifies today against the compound cases and make the go/no-go call on that evidence. Do not extend E1 again.
+
+### E2 kill criteria
+
+- **Stop** if median *triage* time (review included) is not lower than Newman's by at least the pre-registered threshold (default: 30%) on the first full run. Fix-time wins alone do not rescue the thesis.
+- **Stop** if any false heal or masking suggestion occurs that the section 11 rules can't prevent.
+- **Descope, don't stop,** if the tamper suite overruns: ship approvals and strict mode with the cases done, mark the rest as known gaps, and keep acceptance 8 open.
+
+If a checkpoint fails, write down why before changing the design.
 
 ## Phase 0: Specification (no engine code)
 
@@ -30,9 +61,16 @@ If a checkpoint fails, stop and write down why before changing the design.
 - [ ] **T0.6 Approval specification**: canonical serialization, what `covers` must include, signature namespace, trust-root lookup order, reason codes (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`). (FR-R4, FR-V1, FR-V2)
 - [ ] **T0.7 UI plugin paper sketch**: list the pressures on each contract (sessions, waits, nondeterminism, observation shape, visual evidence) and the open questions. (FR-P5)
   Done when: the sketch exists and either confirms the contracts or lists concrete contract changes. It does not need to settle UI diff rules.
-- [ ] **T0.8 Benchmark catalog**: the 30 behaviors (`bench/behaviors.yaml`) and the seeded-change list with the expected outcome per test, including compound cases. (FR-B1, FR-B2)
+- [ ] **T0.8 Pre-registration** (`bench/preregistration.md`, `bench/behaviors.yaml`):
+  - the 30 behaviors and the 12-behavior core subset;
+  - every seeded change with the expected outcome per test and the expected mechanism;
+  - metrics and analysis;
+  - E1 and E2 kill thresholds.
 
-**Gate G0**: schemas, contracts, decision table, diff fixtures, approval spec, and benchmark catalog reviewed by you.
+  Commit it under a signed tag `prereg-v1`; never edit it afterwards (deviations go in `bench/deviations.md`). (FR-B1, FR-B2, FR-B8)
+- [ ] **T0.9 Signing key setup** *(can wait until Phase 3)*: create an `ed25519-sk` key on a FIDO2 security key (or a Secure Enclave key with Touch ID), configure git to sign tags with it, and register it in the CI variable `CAIRN_ALLOWED_SIGNERS`. Until then, sign the `prereg-v1` tag with your existing git signing setup.
+
+**Gate G0**: schemas, contracts, decision table, diff fixtures, approval spec, and the pre-registration tag reviewed by you.
 
 ## Phase 1: Core with a fake plugin
 
@@ -63,17 +101,19 @@ If a checkpoint fails, stop and write down why before changing the design.
 - [ ] **T2.7 Trace writer (minimal)** so hand-written tests can record observations for E1. Full `record` comes in Phase 3. (FR-R2, partial)
 - [ ] **T2.8 Plugin tests** against a local mock server, then the reference API (T6.1).
 - [ ] **T2.9 Performance baseline**: measure per-step overhead and planning time; confirm or revise NFR-2 and NFR-3. (NFR-2, NFR-3)
+- [ ] **T2.10 E1 run**: the 12-behavior subset against every pre-registered seeded change; record the confusion matrix and apply the E1 kill criteria.
 
-**Gate G2 / Checkpoint E1**: the hand-written explicit-`op` suite against the reference API gives the labeled outcome for every seeded change, compound cases included.
+**Gate G2 / Checkpoint E1**: the hand-written explicit-`op` subset against the reference API gives the labeled outcome for every pre-registered seeded change, compound cases included (E1 kill criteria above).
 
 ## Phase 3: Record, review, and approval
 
 - [ ] **T3.1 `init --spec`**: project scaffold and spec import. (FR-R1)
 - [ ] **T3.2 `record`**: traces written as proposals, with a plain-language rendering of each step. (FR-R2)
 - [ ] **T3.3 `review`**: proposals and approved-file diffs with labels. (FR-R3)
-- [ ] **T3.4 `approve`**: hash coverage and SSH signing per T0.6. (FR-R4, FR-R8)
-- [ ] **T3.5 Strict mode**: approval verification, external trust root, no bypass, strict guards (missing trace, environment mismatch). (FR-V1, FR-V2, FR-V3, FR-C20, FR-C9)
-- [ ] **T3.6 Tamper suite**: every case in FR-V5 as an automated test. (FR-V5)
+- [ ] **T3.4 `approve`**: hash coverage (including project-local plugins), a summary shown before signing, key type recorded, SSH signing per T0.6. (FR-R4, FR-R8, FR-V6)
+- [ ] **T3.5 Strict mode and `verify`**: approval verification, trust root from `CAIRN_ALLOWED_SIGNERS` or user config, no bypass, strict guards (missing trace, environment mismatch). (FR-V1, FR-V2, FR-V3, FR-V7, FR-C20, FR-C9)
+- [ ] **T3.6 Tamper suite**: every case in FR-V5 as an automated test. Overrun rule: see E2 kill criteria. (FR-V5)
+- [ ] **T3.6b Reference CI workflow** *(S)*: pinned engine, trust root from a CI variable, `verify` then `run --strict`, documented repository ruleset and agent token scope. (FR-V8)
 - [ ] **T3.7 Quarantine as an approved edit** *(S)*. (FR-C19)
 
 **Gate G3**: starting from a spec, you can go init, write YAML tests, record, review, approve, then strict run, with no test code. Every tamper case is rejected.
@@ -83,11 +123,12 @@ If a checkpoint fails, stop and write down why before changing the design.
 - [ ] **T4.1 Request-side spec-diff classifier**, passing the T0.5 fixtures. (FR-A7)
 - [ ] **T4.2 Impact map**: `impact --spec-diff` and `run --changed`; optional declared `touches` mappings *(C)*. (FR-S1, FR-S2)
 - [ ] **T4.3 Healer**: heal proposals for healable fields only, with a dry run showing which expectations still hold. (FR-R5)
-- [ ] **T4.4 Value requests and expectation-change requests.** (FR-R6)
+- [ ] **T4.4 Value requests and expectation-change requests**, including unambiguous rename and move suggestions (JSONPath-only rewrite) and operationId-rename heals. (FR-R6, FR-R6a, FR-R6b)
 - [ ] **T4.5 Heal-limit enforcement test**: an automated test tries to make the healer change an expectation, data value, or arg, or heal a FAIL; the engine refuses each attempt. (FR-R7)
 - [ ] **T4.6 `accept-observations`** for additive diffs. (FR-C16)
+- [ ] **T4.7 E2 run**: freeze all suites under the signed tag `suites-frozen`, then apply seeded changes by script; measure triage and fix time for cairn-test and Newman; apply the E2 kill criteria. (FR-B9)
 
-**Gate G4 / Checkpoint E2**: for every seeded contract change, `impact` selects exactly the affected tests, heal produces the right kind of proposal (heal, value request, expectation-change request, or none), there are zero false heals, and time to green with review is logged.
+**Gate G4 / Checkpoint E2**: for every seeded contract change, `impact` selects exactly the affected tests, and repair produces the pre-registered mechanism (heal, suggestion, value request, request without a suggestion, or none). Zero false heals, zero masking suggestions, and the triage threshold is met.
 
 ## Phase 5: Reporting, interface, and polish
 
@@ -106,15 +147,15 @@ If a checkpoint fails, stop and write down why before changing the design.
 
 ## Phase 6: Benchmark harness
 
-T6.1 to T6.3 start in parallel with Phase 1.
+T6.1 and T6.2 (core subset) start in parallel with Phase 1; the rest of the catalog and T6.3 to T6.5 come before E2.
 
 - [ ] **T6.1 Reference target API** (about 12 endpoints, stateful), with a spec. (FR-B1)
 - [ ] **T6.2 Seeded changes** as switchable flags, labeled per T0.8. (FR-B1)
-- [ ] **T6.3 Time-logging protocol**: how wall-clock time, authored lines, and review time are recorded for every tool and task; the same LLM assistant for all suites. (FR-B3)
+- [ ] **T6.3 Time-logging protocol**: how wall-clock time, authored lines, and review time are recorded for every tool and task, with triage and fix logged separately. The same LLM assistant and the same inputs (failing output and spec diff) for all suites. (FR-B3)
 - [ ] **T6.4 cairn-test suite** of the 30 behaviors, logged. (FR-B2)
 - [ ] **T6.5 Newman suite** of the 30 behaviors, LLM-assisted, logged. (FR-B2, FR-B3)
 - [ ] **T6.6 REST Assured suite** *(S)*. (FR-B6)
-- [ ] **T6.7 Scoring script**: confusion matrix, maintenance time with review, false heals, heal acceptance rate, create effort, speed. (FR-B4)
+- [ ] **T6.7 Scoring script**: confusion matrix, triage and fix time with review, false heals, masking suggestions, heal and suggestion acceptance rates, create effort, speed. Results reported against the original and amended pre-registration. (FR-B4, FR-B8)
 - [ ] **T6.8 Reproducible run script** writing machine-readable results. (FR-B5)
 - [ ] **T6.9 Keploy context run** *(C)*. (FR-B7)
 
