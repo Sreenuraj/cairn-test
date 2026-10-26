@@ -1,71 +1,82 @@
 # cairn-test Core Vision: Testing in the AI Era
 
-Companion to `plan.md`, `requirements.md`, and `tasks.md`. This document explains *why* the core is shaped the way it is. `plan.md` remains the source of truth for *what* is built.
+Companion to `plan.md`, `requirements.md`, and `tasks.md`. This document explains *why* the core is shaped the way it is and records the v1.1 scope decisions. `plan.md` is the source of truth for *what* is built.
 
 ## 1. What changed
 
-Research into the 2025–2026 testing landscape (sources at the end) points to three shifts.
+Research into the 2025–2026 testing landscape (sources in section 7) shows three shifts.
 
-1. **The test suite is becoming the main oversight mechanism.** Coding agents produce more code than people can review. Oversight collapses onto the automated suite, so a green run now carries more weight than it used to and deserves less trust.
-2. **Agents game the suites that judge them.** Published research (e.g. SpecBench) measures coding agents optimizing for green tests rather than correct behavior: loosening assertions, skipping tests, special-casing test inputs, editing fixtures or CI config, and hollow implementations. Some AI "healers" can edit any part of a test, including assertions.
+1. **The test suite is becoming the main oversight mechanism.** Coding agents produce more code than people can review, so oversight collapses onto the automated suite. A green run now carries more weight and deserves less trust.
+2. **Agents game the suites that judge them.** SpecBench measured a consistent gap between visible tests (which every frontier agent passes) and held-out tests, growing with task size, with failures that include deliberate exploits such as memorizing test inputs. Practitioner reports describe loosened assertions, skipped tests, special-cased inputs, and edited fixtures or CI config.
 3. **AI testing tools have split into three execution models.**
-   - **Scripts plus AI**: a model writes and repairs conventional test code (Playwright Test Agents: planner, generator, healer; Mabl, Testim, Katalon). Deterministic, but healing can silently change what is asserted.
-   - **Runtime agents**: an agent reads the screen and decides what to do and what to check at run time (QA.tech, BrowserUse). Little maintenance and broad coverage, but results are hard to reproduce or verify, and token cost recurs every run.
-   - **Resolve once, replay**: a model resolves an action once; later runs replay a cache at near-zero cost (Stagehand action caching). Fast and cheap, but the cache is not a reviewable contract and has no notion of an outcome.
+   - **Scripts plus AI**: a model writes and repairs conventional test code (Playwright Test Agents: planner, generator, healer; Mabl, Testim). Deterministic, but healing can change what is asserted.
+   - **Runtime agents**: an agent decides at run time what to do and check (QA.tech, BrowserUse). Broad coverage, hard to reproduce or verify, with recurring token cost.
+   - **Resolve once, replay**: a model resolves an action once and later runs replay a cache (Stagehand). Cheap, but the cache is not a reviewable contract and has no notion of an outcome.
 
-Credible vendors converge on one point: **verdicts must be deterministic**. Models are useful for authoring, exploring, and repairing, not for judging.
+Credible vendors agree on one point: **verdicts must be deterministic**.
 
 ## 2. Where cairn-test fits
 
-cairn-test is "resolve once, replay" with governance on top:
+cairn-test is "record once, replay" with governance on top: tests are data, execution is a recorded and approved trace, change (DRIFT) is separate from failure (FAIL), and repairs are proposals that can change *how* a step runs, never *what* is asserted. Approvals are signed by a human key, so in strict mode an agent cannot quietly change what counts as passing.
 
-- Tests are data; execution is a recorded, reviewed trace.
-- Expectations are human-owned; the model never decides an outcome.
-- Change (DRIFT) is reported separately from failure (FAIL).
-- Repairs are proposals that can change *how* a step runs, never *what* is asserted.
+Long-term positioning: **a domain-neutral verification layer for AI-written software**. v1 is deliberately narrower (section 5).
 
-That combination already answers most of what the research recommends. The positioning follows from it:
+## 3. What a strong core needs (long-term)
 
-> **cairn-test is the verification layer for AI-written software: deterministic, tamper-evident, provenance-tracked.**
-
-That is harder to copy than "declarative tests" and aligns with where the market is going.
-
-## 3. What a strong core needs
-
-Eight capabilities separate a core that could replace traditional frameworks from one that is a niche API tool.
-
-| # | Capability | Why it matters in the AI era |
+| # | Capability | v1 status |
 |---|---|---|
-| 1 | **Tamper-evident expectations** | Every expectation carries provenance (author, approver, when). Agents can propose but never approve. Weakening an expectation is a separately flagged review item. Held-out acceptance suites can be hidden from agents. This is the main selling point. |
-| 2 | **Suite strength measurement** | A green run proves little when agents wrote the code. The core injects seeded faults (mutation-style, per plugin) and reports a "would this suite catch a bug?" score per suite and per change. |
-| 3 | **Richer, non-brittle checks** | Property and invariant checks, metamorphic relations, differential comparison against a baseline version, and statistical checks (passes when a threshold holds over N samples) for systems that contain an LLM and are not deterministic. An LLM judge may be advisory evidence, never a verdict. |
-| 4 | **Two loops: explore and verify** | An exploration agent (runtime, non-deterministic) discovers behavior and produces *proposals*. Approved proposals become deterministic regression tests. The core models the handoff formally, so you get runtime-agent coverage without giving up repeatable verdicts. |
-| 5 | **Agents as primary users** | Coding agents will invoke the framework far more often than people. The engine is exposed as a structured API and an MCP server: impact analysis, run, explain, propose. Permissions let an agent run and propose but never approve. |
-| 6 | **Change-based test selection** | Map tests to what they touch (operations, components, routes, files). Select from code and spec diffs. This delivers most of the speed benefit; skip caching becomes a later optimization. |
-| 7 | **A general Observation model** | "Contract" and "fingerprint" become one core concept that each plugin fills in: response schema for API, accessibility tree and DOM shape for UI, exit code and output shape for CLI. DRIFT, healing, and selection all depend on it. Design it against a UI plugin early. |
-| 8 | **Framework fundamentals, as data** | Fixtures, setup/teardown, parameterized and generated data, long-lived sessions (browser, device), waits and timing, flake tracking and quarantine, and an adapter that runs existing pytest or Playwright tests inside cairn-test for gradual adoption. |
+| 1 | Tamper-evident expectations: signed approvals, strict verification, review labels | **In v1** (signature-based) |
+| 2 | Suite-strength measurement (seeded faults, mutation-style) | Benchmark seeded changes only; general fault seeding post-v1 |
+| 3 | Richer checks: property, metamorphic, differential, statistical | CEL `property` is a should; the rest post-v1 |
+| 4 | Two loops: an exploration agent proposes, deterministic tests verify | Post-v1 |
+| 5 | Agents as first-class users | `--json` everywhere and `explain` in v1; MCP is a should |
+| 6 | Change-based selection | Spec-diff in v1; code-diff post-v1 |
+| 7 | A general Observation model with identical / additive / breaking diffs | **In v1** (API); UI paper sketch |
+| 8 | Framework fundamentals as data: fixtures, parameterization, sessions, isolation, quarantine | Isolation in v1 (M); fixtures, parameterization, quarantine are should |
 
-## 4. Design consequences for v1
+## 4. Design decisions that make the core sound
 
-1. **Unevaluable expectations.** When an expectation cannot be evaluated because the observation changed (a field was renamed, an endpoint now returns 404 because it was removed), the result is DRIFT with the expectation marked `unevaluable`, not FAIL. Without this rule, contract changes surface as FAIL and the DRIFT/FAIL split collapses. A FAIL requires that the expectation was evaluable against a matching observation and was false.
-2. **Compatibility-aware observation diffs.** Observation comparison classifies changes as `identical`, `additive` (benign: new optional field, reordering), or `breaking`. Only `breaking` yields DRIFT. Plain hash equality is too blunt.
-3. **Provenance is a schema field from day one**, on tests, expectations, traces, and proposals.
-4. **The outcome engine handles sampled steps**: a statistical expectation is decided once over all samples, deterministically, from the recorded sample results.
-5. **Skip caching is deferred.** Change-based selection comes first; CACHED-PASS stays in the design but is built later and is optional.
-6. **The second paper plugin is UI**, not only CLI, because UI stresses sessions, waits, nondeterminism, and visual evidence. CLI remains the cheap second *implemented* plugin for the extensibility proof.
+1. **`unevaluable` is decided by the core**, from the paths an assertion reads and the observation diff. It is not a plugin opinion. A missing value with no diff entry to explain it is `false`.
+2. **Compound cases are normative.** A contract change plus a false expectation is FAIL with drift detail; the full table is in `plan.md` 6.3 and is a test fixture.
+3. **Blocked steps** (a missing extracted variable) are `unevaluable (blocked)`; the test outcome follows the cause of the blocking step.
+4. **Additive diffs never silently update traces**; updates are batched proposals that need approval.
+5. **Healing is deterministic and spec-diff based.** Healable fields: operation mapping, method, path, parameter placement, header mapping. New required parameters produce a value request, never an invented value.
+6. **Identity comes from signatures, not declarations.** The threat model is explicit, and tamper-evidence is claimed only within it.
 
-## 5. What cairn-test deliberately does not do
+## 5. v1.1 scope decisions (answers to the design review)
+
+| # | Question | Decision | Why |
+|---|---|---|---|
+| 1 | Skip caching in v1? | **Deferred.** Design kept in `plan.md` appendix A. | In CI nearly every run follows a deploy, which changes the service version, so cache hits would be rare; meanwhile it carries the highest correctness risk and cost. |
+| 2 | Which thesis must v1 prove? | **"Change is not failure"**: correct DRIFT/FAIL/PASS classification including compound cases, plus lower maintenance with review time counted. Integrity ships as a tested mechanism, not a benchmark claim. | This is the novel, falsifiable part. Creation effort is not where cairn-test wins (business-rule expectations cost the same to think up), and integrity against a scripted attacker only tests our own enforcement. |
+| 3 | Threat model | The agent can run shell commands, edit any file in the repo, and call the CLI. It cannot use the human's signing key, change the trust root outside the repo, or merge CI config changes. Approvals live in git as signed files. | Matches how coding agents actually run, and puts the security boundary somewhere enforceable. |
+| 4 | Identity | SSH signatures (`ssh-keygen -Y`), with a key the agent's session cannot use (hardware key or confirm-on-use). Names are labels. | Uses tools that already exist, with no accounts or servers. Self-declared identity proves nothing. |
+| 5 | Do expectations declare what they depend on? | Built-in assertions work out their `reads` from their own definition; custom assertion types must declare them. No new field in test files. | Keeps tests simple and makes `unevaluable` decidable. |
+| 6 | Healable trace fields | Operation mapping, method, path, parameter placement, header mapping. Never expectations, data values, args, or observations. | Separates "how" from "what" precisely enough to test. |
+| 7 | Selection | Spec-diff only, plus optional declared mappings. | Black-box API testing has no code-to-operation map; competitors can match spec-diff selection, so it is not claimed as a differentiator. |
+| 8 | Competitor suites, N, trusted | All suites LLM-assisted with the same assistant; N = 30 fixed behaviors; "trusted" means every expectation reviewed by a human; review time is logged for every tool. | The realistic 2026 baseline, and it makes the comparison fair. |
+| 9 | pytest/Playwright adapter | **Rejected for v1.** | Conflicts with "no test code"; approvals cannot inspect assertions written inside code. |
+| 10 | Time budget and continue criteria | Checkpoint E1 (about 4 weeks): classification correct on every seeded case with hand-written tests. E2 (about 4 more weeks): maintenance advantage with review counted. v1 complete about 2–3 weeks after that. | Tests the riskiest assumption first and cheaply. |
+
+Also decided: no model anywhere in v1 (intent steps and model-assisted drafting are post-v1; drafting is deterministic and optional); JSON bodies only; PII masking added to NFR-5; `migrate` is a must; NFR-2 and NFR-3 are provisional until measured (T2.9); the implementation language is decided first (T0.1, default Python).
+
+## 6. What cairn-test deliberately does not do
 
 - Let a model decide PASS or FAIL.
-- Let any automated actor (heal, explore, agent) change, weaken, or delete an expectation without human approval.
-- Hide evidence: every outcome, skip, and selection decision is explainable from stored artifacts.
+- Let any automated actor change, weaken, or delete an expectation without a fresh human signature.
+- Claim protection beyond its stated threat model.
+- Hide evidence: every outcome and selection decision is explainable from stored artifacts.
 
-## 6. Sources
+## 7. Sources
 
-- QA Wolf, "AI Testing Tools 2026: 12 Compared by How They Really Work": https://www.qawolf.com/blog/the-12-best-ai-testing-tools-in-2026
-- QA.tech, "The 12 Best Agentic QA Tools in 2026": https://qa.tech/blog/best-agentic-qa-tools-in-2026
-- Stagehand action caching: https://stevengonsalvez.com/tools-tips/stagehand and https://docs.stagehand.dev
+Verified (page opened):
+- SpecBench: Measuring Reward Hacking in Long-Horizon Coding Agents, arXiv:2605.21384 (v2, Sep 2026): https://arxiv.org/abs/2605.21384
+- QA Wolf, "AI Testing Tools 2026: 12 Compared by How They Really Work" (Feb 2026): https://www.qawolf.com/blog/the-12-best-ai-testing-tools-in-2026
+- QA.tech, "The 12 Best Agentic QA Tools in 2026" (Sep 2026): https://qa.tech/blog/best-agentic-qa-tools-in-2026
 - Playwright Test Agents (planner, generator, healer): https://playwright.dev/docs/test-agents
-- StepTo, "Coding Agents Reward Hacking: Why Green Tests Lie": https://stepto.net/blog/coding-agents-reward-hacking-test-tampering-mutation-testing-2026
-- SpecBench, measuring reward hacking in long-horizon coding agents: https://arxiv.org/abs/2605.21384
-- Test oracle automation in the era of LLMs: https://dl.acm.org/ (ACM TOSEM roadmap), https://arxiv.org/ (AugmenTest)
+- Stagehand action caching overview (Dec 2025): https://stevengonsalvez.com/tools-tips/stagehand
+- StepTo, "Coding Agents Reward Hacking: Why Green Tests Lie" (Oct 2026): https://stepto.net/blog/coding-agents-reward-hacking-test-tampering-mutation-testing-2026
+
+Cited from search results only (page not opened):
+- "Test Oracle Automation in the Era of LLMs", ACM TOSEM: https://dl.acm.org/doi/abs/10.1145/3715107 (access returned HTTP 403)
+- Stagehand caching documentation: https://docs.stagehand.dev
