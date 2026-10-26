@@ -1,0 +1,7 @@
+.DS_Store
+.cairn-test/
+reports/
+__pycache__/
+*.pyc
+.venv/
+node_modules/
