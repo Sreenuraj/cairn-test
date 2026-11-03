@@ -167,3 +167,32 @@ class StateAssertion:
 
         return True
 
+class PropertyAssertion:
+    """CEL/expression property assertion (T5.9, FR-A9)."""
+    name = "property"
+
+    def reads(self, spec: dict[str, Any]) -> list[str]:
+        expr = spec.get("property", "")
+        paths = []
+        for word in re.findall(r"\$\.[\w\.]+|body\.[\w\.]+", expr):
+            paths.append(word.replace("body.", "$."))
+        return paths or ["$"]
+
+    def evaluate(self, spec: dict[str, Any], result: StepResult, ctx: RunContext) -> bool | str:
+        expr = spec.get("property", "")
+        if not expr:
+            return True
+        scope = {
+            "status": result.status_code,
+            "body": result.data if isinstance(result.data, dict) else {},
+            "headers": result.headers,
+            "len": len,
+            "sum": sum,
+            "min": min,
+            "max": max,
+        }
+        try:
+            return bool(eval(expr, {"__builtins__": {}}, scope))
+        except Exception as e:
+            return f"Property evaluation error: {e}"
+

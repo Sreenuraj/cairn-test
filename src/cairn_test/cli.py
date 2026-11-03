@@ -256,6 +256,43 @@ def run_command(args: argparse.Namespace) -> int:
             f"Drifted: {drifted} | Errored: {errored} | Skipped: {skipped}"
         )
 
+    # Optional report exports
+    if getattr(args, "junit", None) or getattr(args, "html", None):
+        test_verdicts_data = [
+            {
+                "test_id": item.test_id,
+                "outcome": v.outcome,
+                "reason": v.reason or "",
+                "duration_ms": getattr(v, "duration_ms", 0.0),
+            }
+            for item, v in zip(planned_items, verdicts)
+        ]
+        if getattr(args, "junit", None):
+            from cairn_test.core.reporting import generate_junit_xml
+            xml_str = generate_junit_xml(run_id, test_verdicts_data)
+            p = Path(args.junit)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(xml_str, encoding="utf-8")
+        if getattr(args, "html", None):
+            from cairn_test.core.reporting import generate_html_report
+            html_str = generate_html_report(
+                run_id=run_id,
+                run_summary={
+                    "total": total,
+                    "passed": passed,
+                    "failed": failed,
+                    "drifted": drifted,
+                    "errored": errored,
+                    "skipped": skipped,
+                    "outcome": overall_outcome,
+                },
+                test_verdicts=test_verdicts_data,
+                metadata={"env_profile": env_profile, "mode": "strict" if args.strict else "dev"},
+            )
+            p = Path(args.html)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(html_str, encoding="utf-8")
+
     return exit_code
 
 def explain_command(args: argparse.Namespace) -> int:
@@ -689,6 +726,204 @@ def accept_observations_command(args: argparse.Namespace) -> int:
         print(f"Created {len(batch)} observation acceptance proposals in proposals/")
     return EXIT_PASS
 
+def report_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.reporting import generate_html_report, generate_junit_xml
+
+    store = EventStore(base_dir=".cairn-test")
+    run_id = args.run_id
+
+    # If run_id not provided, find the latest run_id from results
+    if not run_id:
+        import sqlite3
+        with sqlite3.connect(store.db_path) as conn:
+            row = conn.execute("SELECT run_id FROM results ORDER BY recorded_at DESC LIMIT 1").fetchone()
+            if row:
+                run_id = row[0]
+            else:
+                print("Error: No recorded runs found.")
+                return EXIT_CLI_ERROR
+
+    import sqlite3
+    with sqlite3.connect(store.db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT * FROM results WHERE run_id = ?", (run_id,)).fetchall()
+
+    if not rows:
+        print(f"Error: No results found for run '{run_id}'")
+        return EXIT_CLI_ERROR
+
+    test_verdicts = [dict(r) for r in rows]
+    total = len(test_verdicts)
+    passed = sum(1 for v in test_verdicts if v["outcome"] == "PASS")
+    failed = sum(1 for v in test_verdicts if v["outcome"] == "FAIL")
+    drifted = sum(1 for v in test_verdicts if v["outcome"] == "DRIFT")
+    errored = sum(1 for v in test_verdicts if v["outcome"] == "ERROR")
+    skipped = sum(1 for v in test_verdicts if v["outcome"] == "SKIPPED")
+
+    run_summary = {
+        "run_id": run_id,
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "drifted": drifted,
+        "errored": errored,
+        "skipped": skipped,
+        "outcome": "ERROR" if errored > 0 else ("FAIL" if failed > 0 else ("DRIFT" if drifted > 0 else "PASS")),
+    }
+
+    if args.junit:
+        xml_str = generate_junit_xml(run_id, test_verdicts)
+        p = Path(args.junit)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(xml_str, encoding="utf-8")
+        print(f"Wrote JUnit report -> {p}")
+
+    if args.html:
+        html_str = generate_html_report(run_id, run_summary, test_verdicts)
+        p = Path(args.html)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(html_str, encoding="utf-8")
+        print(f"Wrote HTML report -> {p}")
+
+    if args.json:
+        print(json.dumps({"run_summary": run_summary, "tests": test_verdicts}, indent=2))
+    elif not args.junit and not args.html:
+        print(f"\nRun Report: {run_id}")
+        print("=" * 60)
+        print(f"Total: {total} | Passed: {passed} | Failed: {failed} | Drifted: {drifted} | Errored: {errored} | Skipped: {skipped}")
+        print("=" * 60)
+        for v in test_verdicts:
+            r_str = f" ({v['reason']})" if v.get("reason") else ""
+            print(f"{v['outcome']:<8} {v['test_id']}{r_str}")
+
+    return EXIT_PASS
+
+def migrate_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.migration import MigrationEngine
+
+    engine = MigrationEngine()
+    target_dir = Path(args.dir or ".")
+    results = engine.migrate_directory(target_dir, dry_run=args.dry_run)
+
+    if args.json:
+        out = [
+            {
+                "file": str(r.path),
+                "kind": r.kind,
+                "old_version": r.old_version,
+                "new_version": r.new_version,
+                "changes": r.changes,
+            }
+            for r in results
+        ]
+        print(json.dumps({"migrated_count": len(results), "files": out}, indent=2))
+    else:
+        mode_label = "[DRY RUN] " if args.dry_run else ""
+        print(f"\n{mode_label}cairn-test migrate: {len(results)} files upgraded")
+        print("=" * 60)
+        for r in results:
+            print(f"UPGRADED {r.path}: {r.old_version} -> {r.new_version}")
+            for c in r.changes:
+                print(f"  - {c}")
+        print("=" * 60)
+
+    return EXIT_PASS
+
+def doctor_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.doctor import Doctor
+
+    doc = Doctor()
+    key_path = Path(args.key) if args.key else None
+    checks = doc.run_all(key_path=key_path)
+
+    all_ok = all(c.status == "OK" for c in checks)
+    has_fail = any(c.status == "FAIL" for c in checks)
+
+    if args.json:
+        out = {
+            "healthy": all_ok,
+            "checks": [
+                {
+                    "id": c.id,
+                    "name": c.name,
+                    "status": c.status,
+                    "message": c.message,
+                    "remediation": c.remediation,
+                }
+                for c in checks
+            ],
+        }
+        print(json.dumps(out, indent=2))
+    else:
+        print("\ncairn-test doctor: diagnostic results")
+        print("=" * 60)
+        for c in checks:
+            badge = f"[{c.status}]"
+            print(f"{badge:<8} {c.name}")
+            print(f"         {c.message}")
+            if c.remediation:
+                print(f"         Remediation: {c.remediation}")
+        print("=" * 60)
+
+    return EXIT_ERROR if has_fail else EXIT_PASS
+
+def status_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.health import HealthAnalyzer
+
+    analyzer = HealthAnalyzer()
+    health = analyzer.analyze()
+
+    if args.json:
+        out = {
+            "total_tests": health.total_tests,
+            "total_runs": health.total_runs,
+            "drift_rate_percent": health.drift_rate_percent,
+            "flaky_tests": health.flaky_tests,
+            "quarantined_tests": health.quarantined_tests,
+            "latest_outcomes": health.latest_outcomes,
+        }
+        print(json.dumps(out, indent=2))
+    else:
+        print("\ncairn-test status: Suite Health Overview")
+        print("=" * 60)
+        print(f"Total Tests in Suite: {health.total_tests}")
+        print(f"Recorded Test Runs:   {health.total_runs}")
+        print(f"Contract Drift Rate:  {health.drift_rate_percent}%")
+        print(f"Flaky Tests ({len(health.flaky_tests)}):")
+        for f in health.flaky_tests:
+            print(f"  - {f}")
+        print(f"Quarantined Tests ({len(health.quarantined_tests)}):")
+        for q in health.quarantined_tests:
+            print(f"  - {q['test_id']} ({q['reason']})")
+        print("=" * 60)
+
+    return EXIT_PASS
+
+def draft_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.draft import SpecDrafter
+    from cairn_test.plugins.api.spec import OpenAPISpec
+
+    repo_root = Path(".")
+    config = Config.load()
+    spec_path = args.spec or config.spec
+    if not spec_path or not Path(spec_path).is_file():
+        print("Error: Spec file required for drafting (--spec openapi.yaml)")
+        return EXIT_CLI_ERROR
+
+    spec = OpenAPISpec.load(spec_path)
+    drafter = SpecDrafter(spec)
+    paths = drafter.draft_suite(repo_root)
+
+    if args.json:
+        print(json.dumps({"drafts_created": len(paths), "paths": [str(p) for p in paths]}, indent=2))
+    else:
+        print(f"\ncairn-test draft: generated {len(paths)} draft proposals in proposals/")
+        print("=" * 60)
+        for p in paths:
+            print(f"DRAFT -> {p}")
+        print("=" * 60)
+    return EXIT_PASS
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="cairn-test",
@@ -701,6 +936,11 @@ def main() -> None:
     init_parser.add_argument("--spec", type=str, help="Path or URL to OpenAPI specification")
     init_parser.add_argument("--dir", type=str, default=".", help="Target directory")
     init_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # draft command
+    draft_parser = subparsers.add_parser("draft", help="Deterministically draft baseline tests from OpenAPI spec")
+    draft_parser.add_argument("--spec", type=str, help="Path to OpenAPI spec")
+    draft_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # run command
     run_parser = subparsers.add_parser("run", help="Run test suite")
@@ -719,6 +959,8 @@ def main() -> None:
     run_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
     run_parser.add_argument("--old-spec", type=str, help="Old OpenAPI spec path")
     run_parser.add_argument("--new-spec", type=str, help="New OpenAPI spec path")
+    run_parser.add_argument("--junit", type=str, help="Export test results to JUnit XML file")
+    run_parser.add_argument("--html", type=str, help="Export test results to static HTML report")
 
     # record command
     rec_parser = subparsers.add_parser("record", help="Record traces for tests as inert proposals")
@@ -779,9 +1021,34 @@ def main() -> None:
     explain_parser.add_argument("test_id", type=str, help="Test ID")
     explain_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
+    # report command
+    report_parser = subparsers.add_parser("report", help="Generate HTML and JUnit reports from stored run events")
+    report_parser.add_argument("--run", dest="run_id", type=str, help="Run ID (defaults to latest run)")
+    report_parser.add_argument("--junit", type=str, help="Output path for JUnit XML")
+    report_parser.add_argument("--html", type=str, help="Output path for static HTML")
+    report_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # migrate command
+    migrate_parser = subparsers.add_parser("migrate", help="Upgrade stored test/trace files across schema versions")
+    migrate_parser.add_argument("--dir", type=str, default=".", help="Directory to scan and migrate")
+    migrate_parser.add_argument("--dry-run", action="store_true", help="Show proposed changes without writing")
+    migrate_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # doctor command
+    doctor_parser = subparsers.add_parser("doctor", help="Check security, key-type, and strict-mode assumptions")
+    doctor_parser.add_argument("--key", type=str, help="Path to OpenSSH private key")
+    doctor_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # status command
+    status_parser = subparsers.add_parser("status", help="Display test suite health, flakiness, and drift rate")
+    status_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
     parsed = parser.parse_args()
     if parsed.command == "init":
         code = init_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "draft":
+        code = draft_command(parsed)
         sys.exit(code)
     elif parsed.command == "run":
         code = run_command(parsed)
@@ -809,6 +1076,18 @@ def main() -> None:
         sys.exit(code)
     elif parsed.command == "explain":
         code = explain_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "report":
+        code = report_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "migrate":
+        code = migrate_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "doctor":
+        code = doctor_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "status":
+        code = status_command(parsed)
         sys.exit(code)
 
 if __name__ == "__main__":

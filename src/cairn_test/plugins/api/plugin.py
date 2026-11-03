@@ -10,6 +10,7 @@ from cairn_test.core.plugins import PluginRegistry
 from cairn_test.plugins.api.assertions import (
     HeaderAssertion,
     JsonPathAssertion,
+    PropertyAssertion,
     SchemaFromSpecAssertion,
     StateAssertion,
     StatusAssertion,
@@ -57,4 +58,5 @@ def register_api_plugin(
     registry.register_assertion("jsonpath", JsonPathAssertion())
     registry.register_assertion("schema", SchemaFromSpecAssertion(spec=spec))
     registry.register_assertion("state", StateAssertion(executor=http_exec))
+    registry.register_assertion("property", PropertyAssertion())
 

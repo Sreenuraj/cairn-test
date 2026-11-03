@@ -81,7 +81,17 @@ def explain_test(run_id: str, test_id: str, store: EventStore) -> dict[str, Any]
         else:
             explanation_summary = f"System contract drifted: {reason or 'pre-fingerprint or expectation mismatch'}"
     elif outcome == "ERROR":
-        explanation_summary = f"Execution error: {reason or 'step transport failure or verification failure'}."
+        strict_explanations = {
+            "unapproved": "Strict mode verification failed: Test has not been approved with an OpenSSH signature.",
+            "missing-trace": "Strict mode verification failed: Recorded trace is missing.",
+            "tampered": "Strict mode verification failed: Content hash mismatch against covered files in approval.",
+            "bad-signature": "Strict mode verification failed: OpenSSH cryptographic signature is mathematically invalid.",
+            "unknown-signer": "Strict mode verification failed: Approver key is not recognized by the trust root (CAIRN_ALLOWED_SIGNERS).",
+            "env-mismatch": "Strict mode verification failed: Active environment profile does not match approval/trace.",
+        }
+        explanation_summary = strict_explanations.get(
+            reason, f"Execution error: {reason or 'step transport failure or verification failure'}."
+        )
     elif outcome == "SKIPPED":
         plan_reason = planned_event["payload"].get("reason") if planned_event else reason
         explanation_summary = f"Test was not executed: {plan_reason}."

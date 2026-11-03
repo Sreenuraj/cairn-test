@@ -132,16 +132,16 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 5: Reporting, interface, and polish
 
-- [ ] **T5.1 Run, test, and change views** (HTML + terminal). (FR-O1, FR-O2, FR-O3)
-- [ ] **T5.2 JUnit XML export.** (FR-O5)
-- [ ] **T5.3 Complete `explain`** for every outcome and reason code. (FR-G2, FR-O7)
-- [ ] **T5.4 `migrate`** framework plus a test migration between two dummy schema versions. (FR-M1)
-- [ ] **T5.5 Health view** *(S)*. (FR-O4)
-- [ ] **T5.6 `doctor`** *(S)*. (FR-V4)
-- [ ] **T5.7 MCP server** over the internal API *(S)*. (FR-G3)
-- [ ] **T5.8 Deterministic `draft`** *(S)*. (FR-A8)
-- [ ] **T5.9 CEL `property` assertion** *(S)*. (FR-A9)
-- [ ] **T5.10 Fixtures and parameterized tests** *(S)*. (FR-C17)
+- [x] **T5.1 Run, test, and change views** (HTML + terminal). (FR-O1, FR-O2, FR-O3)
+- [x] **T5.2 JUnit XML export.** (FR-O5)
+- [x] **T5.3 Complete `explain`** for every outcome and reason code. (FR-G2, FR-O7)
+- [x] **T5.4 `migrate`** framework plus a test migration between two dummy schema versions. (FR-M1)
+- [x] **T5.5 Health view** *(S)*. (FR-O4)
+- [x] **T5.6 `doctor`** *(S)*. (FR-V4)
+- [x] **T5.7 MCP server** over the internal API *(S)*. (FR-G3)
+- [x] **T5.8 Deterministic `draft`** *(S)*. (FR-A8)
+- [x] **T5.9 CEL `property` assertion** *(S)*. (FR-A9)
+- [x] **T5.10 Fixtures and parameterized tests** *(S)*. (FR-C17)
 
 **Gate G5**: a fresh checkout with only the stored artifacts can regenerate every report and explanation.
 

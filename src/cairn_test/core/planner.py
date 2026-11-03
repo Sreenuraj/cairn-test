@@ -68,7 +68,34 @@ class Planner:
         return item
 
     def plan_suite(self, test_defs: list[dict[str, Any]]) -> list[PlanItem]:
-        return [self.plan_test(t) for t in test_defs]
+        expanded_tests: list[dict[str, Any]] = []
+        for t in test_defs:
+            # Handle parametrization (T5.10, FR-C17)
+            if "parametrize" in t and isinstance(t["parametrize"], dict):
+                p_spec = t["parametrize"]
+                param_names = p_spec.get("params", [])
+                cases = p_spec.get("cases", [])
+                for i, case in enumerate(cases):
+                    t_copy = dict(t)
+                    t_copy["id"] = f"{t['id']}[{i}]"
+                    t_copy_data = dict(t.get("data", {}))
+                    for name, val in zip(param_names, case):
+                        t_copy_data[name] = val
+                    t_copy["data"] = t_copy_data
+                    expanded_tests.append(t_copy)
+            else:
+                expanded_tests.append(t)
+
+        # Handle fixtures (setup / teardown steps)
+        for t in expanded_tests:
+            if "fixtures" in t and isinstance(t["fixtures"], dict):
+                setup_steps = t["fixtures"].get("setup", [])
+                teardown_steps = t["fixtures"].get("teardown", [])
+                if setup_steps or teardown_steps:
+                    steps = list(setup_steps) + list(t.get("steps", [])) + list(teardown_steps)
+                    t["steps"] = steps
+
+        return [self.plan_test(t) for t in expanded_tests]
 
     def _emit_planned(self, item: PlanItem) -> None:
         if self.event_bus:
