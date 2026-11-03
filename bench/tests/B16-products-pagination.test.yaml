@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B16-products-pagination
+tags:
+- products
+steps:
+- id: paginate
+  op: getProducts
+  args:
+    params:
+      limit: 5
+      offset: 5
+expect:
+- after: paginate
+  status: 200
+- after: paginate
+  jsonpath: $.count
+  equals: 5

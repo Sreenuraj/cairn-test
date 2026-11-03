@@ -1,0 +1,25 @@
+schema: cairn-test.trace/v1
+test: B26-refunds-exceed-order-total
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: over_refund
+  step_hash: eb4a97509a7e7c43d4081d5fa4d1beb88423fe03e179a05bb52b9ba67de368a8
+  resolved:
+    operation: requestRefund
+    method: POST
+    path: /refunds
+    params:
+      body:
+        order_id: ord-seed-1
+        amount: 999.0
+    headers: {}
+  pre_fingerprint:
+    op_hash: bb448f8304e0ec3e73348c942a7b53777b55be156d16c01d6788592bc2e6be36
+  observation:
+    status: 400
+    headers:
+    - content-type
+    body_shape:
+      error: string
+  recorded_at: '2026-11-03T13:32:56.725544+00:00'

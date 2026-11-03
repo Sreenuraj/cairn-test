@@ -7,6 +7,7 @@ Uses Python standard library (urllib.request) for zero extra dependencies.
 from __future__ import annotations
 import base64
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -55,12 +56,27 @@ class HttpStepExecutor:
         path = step.path
         base = self.base_url or ctx.variables.get("base_url", "")
 
-        # Format path parameters (e.g. /orders/{id})
+        # Format path parameters (e.g. /orders/{id}) and query parameters
         url_path = path
+        all_params: dict[str, Any] = {}
         if isinstance(step.params, dict):
-            for p_name, p_val in step.params.items():
-                if f"{{{p_name}}}" in url_path:
-                    url_path = url_path.replace(f"{{{p_name}}}", str(p_val))
+            for k, v in step.params.items():
+                if k == "params" and isinstance(v, dict):
+                    all_params.update(v)
+                else:
+                    all_params[k] = v
+
+        path_vars = set(re.findall(r"\{([^}]+)\}", url_path))
+        query_params: dict[str, Any] = {}
+        for p_name, p_val in all_params.items():
+            if p_name in path_vars:
+                url_path = url_path.replace(f"{{{p_name}}}", urllib.parse.quote(str(p_val), safe=""))
+            elif p_name not in ("body", "headers") and not isinstance(p_val, dict):
+                query_params[p_name] = p_val
+
+        if query_params and method == "GET":
+            delimiter = "&" if "?" in url_path else "?"
+            url_path += delimiter + urllib.parse.urlencode(query_params, doseq=True)
 
         full_url = f"{base.rstrip('/')}{url_path}" if base else url_path
 

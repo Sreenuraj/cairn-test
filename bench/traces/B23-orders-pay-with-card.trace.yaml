@@ -1,0 +1,26 @@
+schema: cairn-test.trace/v1
+test: B23-orders-pay-with-card
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: pay
+  step_hash: ebc155bdb94b81af36f66ae7a7c1c021b953de3b26669ca74f9c51d9aecdec79
+  resolved:
+    operation: payOrder
+    method: POST
+    path: /orders/{id}/pay
+    params:
+      params:
+        id: ord-seed-1
+    headers: {}
+  pre_fingerprint:
+    op_hash: d7663f53e774ca5153151c395796c0a189858a6895cfac8a2ec9877bcd3c907d
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      status: string
+      paid_amount: number
+  recorded_at: '2026-11-03T13:32:56.721834+00:00'

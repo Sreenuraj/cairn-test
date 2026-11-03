@@ -115,26 +115,32 @@ def evaluate_expectation(
 
     # Rule 2: Breaking observation diff matches any read path
     if obs_diff and obs_diff.has_breaking:
+        has_breaking_status = any(c.kind == DiffKind.BREAKING and c.path == "$.status" for c in obs_diff.changes)
+        observed_status = step_result.status_code if step_result else None
+        expected_status = exp_spec.get("status")
+
+        # When endpoint moved/removed (404) or request format rejected (400) on request-side contract change,
+        # all expectations on this step are unevaluable because the endpoint route/format drifted
+        if has_breaking_status and (
+            (observed_status == 404 and expected_status != 404)
+            or (observed_status == 400 and expected_status != 400)
+            or (expected_status and 200 <= int(expected_status) < 300 and observed_status and 400 <= int(observed_status) < 500)
+        ):
+            return EvaluatedExpectation(
+                expectation_id=exp_id,
+                step_id=step_id,
+                kind=kind,
+                value="unevaluable",
+                reason="breaking-diff:$.status",
+            )
+
         for change in obs_diff.changes:
             if change.kind == DiffKind.BREAKING:
                 for rp in reads_paths:
                     if paths_match(rp, change.path):
-                        # For status assertions: if the test expected a successful response (2xx), but the server
-                        # returned a client error (4xx), the server rejected the recorded request format (contract
-                        # change on request side: e.g. 404 path moved C-REQ-2, 400 new required parameter C-REQ-4).
-                        # This makes the 2xx status expectation unevaluable -> DRIFT.
-                        # Conversely, if a negative test expected 4xx but got 2xx (e.g. BUG-2 validation regression),
-                        # or if the server returned a 5xx error (defect), the expectation evaluates to false -> FAIL.
                         if rp == "$.status" and kind == "status":
-                            observed_status = step_result.status_code if step_result else None
-                            expected_status = exp_spec.get("status")
-                            if expected_status and 200 <= int(expected_status) < 300:
-                                if observed_status and 400 <= int(observed_status) < 500:
-                                    pass
-                                else:
-                                    continue
-                            else:
-                                continue
+                            # Any other status difference is a behavioral defect (e.g. 4xx expected but 2xx received) -> evaluate as false
+                            continue
                         return EvaluatedExpectation(
                             expectation_id=exp_id,
                             step_id=step_id,

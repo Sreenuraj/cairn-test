@@ -1,0 +1,25 @@
+schema: cairn-test.trace/v1
+test: B13-auth-refresh-token
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: refresh
+  step_hash: 20896e73a60453933e4fb80bca6afae1673a73e4a1ac2f9699d5e6cb54c03470
+  resolved:
+    operation: refresh
+    method: POST
+    path: /auth/refresh
+    params:
+      body:
+        refresh_token: token-alice-123
+    headers: {}
+  pre_fingerprint:
+    op_hash: c7219a3aa27bf803df24a7d16ddba8e8c0c02b688973c55a6700d58828296747
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      token: string
+      expires_in: integer
+  recorded_at: '2026-11-03T13:32:56.675832+00:00'

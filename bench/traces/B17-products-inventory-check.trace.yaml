@@ -1,0 +1,25 @@
+schema: cairn-test.trace/v1
+test: B17-products-inventory-check
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: inventory
+  step_hash: 3db0cbce418a380e87581641fbd7e4a3e17d65a672b8bdec117622105ace70c1
+  resolved:
+    operation: getInventory
+    method: GET
+    path: /products/{id}/inventory
+    params:
+      params:
+        id: prod-1
+    headers: {}
+  pre_fingerprint:
+    op_hash: 45184557098c0dcf84320098e4a95c05c3842627fb339f723a32992b4ff92d7c
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      product_id: string
+      stock: integer
+  recorded_at: '2026-11-03T13:32:56.713780+00:00'

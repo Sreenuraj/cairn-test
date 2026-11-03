@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B20-orders-list-user-orders
+tags:
+- orders
+steps:
+- id: user_orders
+  op: getOrders
+  args:
+    headers:
+      Authorization: Bearer jwt-token-alice
+expect:
+- after: user_orders
+  status: 200
+- after: user_orders
+  jsonpath: $.count
+  range:
+    min: 1

@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B25-refunds-full-order
+tags:
+- refunds
+steps:
+- id: full_refund
+  op: requestRefund
+  args:
+    body:
+      order_id: ord-seed-1
+      amount: 49.98
+expect:
+- after: full_refund
+  status: 201
+- after: full_refund
+  jsonpath: $.status
+  equals: REFUNDED

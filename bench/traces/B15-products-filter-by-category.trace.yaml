@@ -1,0 +1,30 @@
+schema: cairn-test.trace/v1
+test: B15-products-filter-by-category
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: filter
+  step_hash: 5b6b5000d7752ddac6e04892581119662e05c8755915ef8a217010d968037d7c
+  resolved:
+    operation: getProducts
+    method: GET
+    path: /products
+    params:
+      params:
+        category: electronics
+    headers: {}
+  pre_fingerprint:
+    op_hash: 1c31ddffe4ecc3528a95188bec129a2546c3a3d0a07b7f42f792078d3c6260cf
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      items:
+      - id: string
+        name: string
+        price: number
+        category: string
+        stock: integer
+      count: integer
+  recorded_at: '2026-11-03T13:32:56.710725+00:00'

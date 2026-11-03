@@ -1,0 +1,18 @@
+schema: cairn-test.test/v1
+id: B22-orders-update-shipping-address
+tags:
+- orders
+steps:
+- id: update_ship
+  op: updateShipping
+  args:
+    params:
+      id: ord-seed-1
+    body:
+      address: 123 Main St, New York, NY
+expect:
+- after: update_ship
+  status: 200
+- after: update_ship
+  jsonpath: $.status
+  equals: UPDATED

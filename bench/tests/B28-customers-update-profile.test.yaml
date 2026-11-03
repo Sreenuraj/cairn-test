@@ -1,0 +1,18 @@
+schema: cairn-test.test/v1
+id: B28-customers-update-profile
+tags:
+- customers
+steps:
+- id: update_me
+  op: updateCustomer
+  args:
+    headers:
+      Authorization: Bearer jwt-token-alice
+    body:
+      name: Alice Wonderland
+expect:
+- after: update_me
+  status: 200
+- after: update_me
+  jsonpath: $.name
+  equals: Alice Wonderland

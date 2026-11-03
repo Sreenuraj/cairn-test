@@ -194,3 +194,4 @@ def generate_html_report(
 </body>
 </html>
 """
+

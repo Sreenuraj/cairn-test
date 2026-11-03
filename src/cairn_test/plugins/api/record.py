@@ -63,6 +63,7 @@ def record_test_trace(
         from cairn_test.core.scheduler import interpolate
         resolved_args = interpolate(step_spec.get("args", {}), ctx.variables)
         resolved_auth = interpolate(step_spec.get("auth"), ctx.variables) if step_spec.get("auth") else None
+        step_headers = {str(k): str(v) for k, v in resolved_args.get("headers", {}).items()} if isinstance(resolved_args, dict) else {}
 
         resolved_step = ResolvedStep(
             id=step_id,
@@ -71,6 +72,7 @@ def record_test_trace(
             method=method,
             path=path,
             params=resolved_args if isinstance(resolved_args, dict) else {},
+            headers=step_headers,
             body=resolved_args.get("body") if isinstance(resolved_args, dict) and "body" in resolved_args else resolved_args,
             auth=resolved_auth,
             timeout_ms=step_spec.get("timeout_ms", 10000),
@@ -93,7 +95,7 @@ def record_test_trace(
                 "method": method,
                 "path": path,
                 "params": resolved_step.params,
-                "headers": {k: "present" for k in resolved_step.headers.keys()},
+                "headers": step_headers,
             },
             "pre_fingerprint": {"op_hash": op_hash},
             "observation": {

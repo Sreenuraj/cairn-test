@@ -1,0 +1,14 @@
+schema: cairn-test.test/v1
+id: B30-system-openapi-spec
+tags:
+- system
+steps:
+- id: spec
+  op: getOpenApiSpec
+  args: {}
+expect:
+- after: spec
+  status: 200
+- after: spec
+  jsonpath: $.openapi
+  equals: 3.1.0

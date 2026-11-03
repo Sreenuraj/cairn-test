@@ -1,0 +1,28 @@
+schema: cairn-test.trace/v1
+test: B19-orders-invalid-coupon
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: bad_coupon
+  step_hash: 897d8512129439694fe6d7b3dc4e10afd21b763f76d525e6ef9013537fc4bf8d
+  resolved:
+    operation: createOrder
+    method: POST
+    path: /orders
+    params:
+      body:
+        items:
+        - sku: prod-1
+          qty: 1
+          price: 100
+        coupon: EXPIRED
+    headers: {}
+  pre_fingerprint:
+    op_hash: 7669ea725b746bd9c2047f48f448756a1ed4327d29ff38ef45603341e52ae2a2
+  observation:
+    status: 422
+    headers:
+    - content-type
+    body_shape:
+      error: string
+  recorded_at: '2026-11-03T13:32:56.716344+00:00'

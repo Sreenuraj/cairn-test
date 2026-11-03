@@ -1,0 +1,522 @@
+schema: cairn-test.trace/v1
+test: B30-system-openapi-spec
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: spec
+  step_hash: 533c86257f9f536dec9e672118f154dc051f271171aef03238b5e5de2f18638d
+  resolved:
+    operation: getOpenApiSpec
+    method: GET
+    path: /openapi.json
+    params: {}
+    headers: {}
+  pre_fingerprint:
+    op_hash: 48c60f2731403339f638dee490ef7ddeb4e70c2484106a6711d248e9e1315a39
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      openapi: string
+      info:
+        title: string
+        version: string
+        description: string
+      paths:
+        /auth/login:
+          post:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    required:
+                    - string
+                    properties:
+                      username:
+                        type: string
+                      password:
+                        type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        token:
+                          type: string
+                        user:
+                          type: string
+              '401':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      properties:
+                        error:
+                          type: string
+        /products:
+          get:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        items:
+                          type: string
+                          items:
+                            type: string
+                            required:
+                            - string
+                            properties:
+                              id:
+                                type: string
+                              name:
+                                type: string
+                              price:
+                                type: string
+                        count:
+                          type: string
+        /products/{id}:
+          get:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        price:
+                          type: string
+              '404':
+                description: string
+        /orders:
+          post:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    required:
+                    - string
+                    properties:
+                      ref:
+                        type: string
+                      items:
+                        type: string
+                        items:
+                          type: string
+                          required:
+                          - string
+                          properties:
+                            sku:
+                              type: string
+                            qty:
+                              type: string
+                            price:
+                              type: string
+            responses:
+              '201':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        total:
+                          type: string
+                        status:
+                          type: string
+              '400':
+                description: string
+          get:
+            operationId: string
+            summary: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        orders:
+                          type: string
+                        count:
+                          type: string
+        /orders/{id}:
+          get:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        total:
+                          type: string
+                        status:
+                          type: string
+              '403':
+                description: string
+              '404':
+                description: string
+        /orders/{id}/cancel:
+          post:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+        /refunds:
+          post:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    required:
+                    - string
+                    properties:
+                      order_id:
+                        type: string
+                      amount:
+                        type: string
+            responses:
+              '201':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        order_id:
+                          type: string
+                        amount:
+                          type: string
+                        status:
+                          type: string
+              '400':
+                description: string
+        /auth/refresh:
+          post:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    required:
+                    - string
+                    properties:
+                      refresh_token:
+                        type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        token:
+                          type: string
+                        expires_in:
+                          type: string
+        /auth/logout:
+          post:
+            operationId: string
+            summary: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        status:
+                          type: string
+        /products/{id}/inventory:
+          get:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        product_id:
+                          type: string
+                        stock:
+                          type: string
+        /orders/{id}/shipping:
+          put:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    required:
+                    - string
+                    properties:
+                      address:
+                        type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+                        shipping_address:
+                          type: string
+        /orders/{id}/pay:
+          post:
+            operationId: string
+            summary: string
+            parameters:
+            - name: string
+              in: string
+              required: boolean
+              schema:
+                type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        status:
+                          type: string
+                        paid_amount:
+                          type: string
+        /customers/me:
+          get:
+            operationId: string
+            summary: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        id:
+                          type: string
+                        username:
+                          type: string
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        preference:
+                          type: string
+          patch:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    properties:
+                      name:
+                        type: string
+                      preference:
+                        type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        preference:
+                          type: string
+        /health:
+          get:
+            operationId: string
+            summary: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      required:
+                      - string
+                      properties:
+                        status:
+                          type: string
+                        components:
+                          type: string
+        /openapi.json:
+          get:
+            operationId: string
+            summary: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+        /orders/search:
+          post:
+            operationId: string
+            summary: string
+            requestBody:
+              required: boolean
+              content:
+                application/json:
+                  schema:
+                    type: string
+                    properties:
+                      status:
+                        type: string
+            responses:
+              '200':
+                description: string
+                content:
+                  application/json:
+                    schema:
+                      type: string
+                      properties:
+                        items:
+                          type: string
+                        count:
+                          type: string
+  recorded_at: '2026-11-03T13:32:56.740283+00:00'

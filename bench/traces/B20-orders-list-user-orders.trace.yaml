@@ -1,0 +1,35 @@
+schema: cairn-test.trace/v1
+test: B20-orders-list-user-orders
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: user_orders
+  step_hash: 0e9cd51943165148176290110a204fc8c8ae34747d7f727d5003cc6e577eeb6e
+  resolved:
+    operation: getOrders
+    method: GET
+    path: /orders
+    params:
+      headers:
+        Authorization: Bearer jwt-token-alice
+    headers:
+      Authorization: Bearer jwt-token-alice
+  pre_fingerprint:
+    op_hash: 88905c5d3725b1aee44bdb2aa19db3debd07cbe7241391298a07c9010cb3d5cf
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      orders:
+      - id: string
+        user: string
+        ref: string
+        items:
+        - sku: string
+          qty: integer
+          price: number
+        total: number
+        status: string
+      count: integer
+  recorded_at: '2026-11-03T13:32:56.717616+00:00'

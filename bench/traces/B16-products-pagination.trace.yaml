@@ -1,0 +1,31 @@
+schema: cairn-test.trace/v1
+test: B16-products-pagination
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: paginate
+  step_hash: 172ff643f479f5ce0d6467b7c25753fb43d5056eaeb7c601be566a554b94a247
+  resolved:
+    operation: getProducts
+    method: GET
+    path: /products
+    params:
+      params:
+        limit: 5
+        offset: 5
+    headers: {}
+  pre_fingerprint:
+    op_hash: 1c31ddffe4ecc3528a95188bec129a2546c3a3d0a07b7f42f792078d3c6260cf
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      items:
+      - id: string
+        name: string
+        price: number
+        category: string
+        stock: integer
+      count: integer
+  recorded_at: '2026-11-03T13:32:56.712289+00:00'

@@ -165,6 +165,9 @@ class Worker:
 
             step_body = resolved_args.get("body") if (isinstance(resolved_args, dict) and "body" in resolved_args) else resolved_args
             step_params = resolved_args if isinstance(resolved_args, dict) else rec_step.get("resolved", {}).get("params", {})
+            merged_headers = dict(rec_step.get("resolved", {}).get("headers", {}))
+            if isinstance(resolved_args, dict) and "headers" in resolved_args:
+                merged_headers.update(resolved_args["headers"])
 
             resolved = ResolvedStep(
                 id=step_id,
@@ -173,7 +176,7 @@ class Worker:
                 method=rec_step.get("resolved", {}).get("method", "POST"),
                 path=rec_step.get("resolved", {}).get("path", f"/{step_spec.get('op', step_id)}"),
                 params=step_params,
-                headers=rec_step.get("resolved", {}).get("headers", {}),
+                headers=merged_headers,
                 body=step_body,
                 auth=resolved_auth,
                 timeout_ms=step_spec.get("timeout_ms", self.default_timeout_ms),

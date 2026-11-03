@@ -126,7 +126,7 @@ If a checkpoint fails, write down why before changing the design.
 - [x] **T4.4 Value requests and expectation-change requests**, including unambiguous rename and move suggestions (JSONPath-only rewrite) and operationId-rename heals. (FR-R6, FR-R6a, FR-R6b)
 - [x] **T4.5 Heal-limit enforcement test**: an automated test tries to make the healer change an expectation, data value, or arg, or heal a FAIL; the engine refuses each attempt. (FR-R7)
 - [x] **T4.6 `accept-observations`** for additive diffs. (FR-C16)
-- [ ] **T4.7 E2 run**: freeze all suites under the signed tag `suites-frozen`, then apply seeded changes by script; measure triage and fix time for cairn-test and Newman; apply the E2 kill criteria. (FR-B9)
+- [x] **T4.7 E2 run**: freeze all suites under the signed tag `suites-frozen`, then apply seeded changes by script; measure triage and fix time for cairn-test and Newman; apply the E2 kill criteria. (FR-B9)
 
 **Gate G4 / Checkpoint E2**: for every seeded contract change, `impact` selects exactly the affected tests, and repair produces the pre-registered mechanism (heal, suggestion, value request, request without a suggestion, or none). Zero false heals, zero masking suggestions, and the triage threshold is met.
 
@@ -151,25 +151,24 @@ T6.1 and T6.2 (core subset) start in parallel with Phase 1; the rest of the cata
 
 - [x] **T6.1 Reference target API** (about 12 endpoints, stateful), with a spec. (FR-B1)
 - [x] **T6.2 Seeded changes** as switchable flags, labeled per T0.8. (FR-B1)
-- [ ] **T6.3 Time-logging protocol**: how wall-clock time, authored lines, and review time are recorded for every tool and task, with triage and fix logged separately. The same LLM assistant and the same inputs (failing output and spec diff) for all suites. (FR-B3)
-- [ ] **T6.4 cairn-test suite** of the 30 behaviors, logged. (FR-B2)
-- [ ] **T6.5 Newman suite** of the 30 behaviors, LLM-assisted, logged. (FR-B2, FR-B3)
+- [x] **T6.3 Time-logging protocol**: how wall-clock time, authored lines, and review time are recorded for every tool and task, with triage and fix logged separately. The same LLM assistant and the same inputs (failing output and spec diff) for all suites. (FR-B3)
+- [x] **T6.4 cairn-test suite** of the 30 behaviors, logged. (FR-B2)
+- [x] **T6.5 Newman suite** of the 30 behaviors, LLM-assisted, logged. (FR-B2, FR-B3)
 - [ ] **T6.6 REST Assured suite** *(S)*. (FR-B6)
-- [ ] **T6.7 Scoring script**: confusion matrix, triage and fix time with review, false heals, masking suggestions, heal and suggestion acceptance rates, create effort, speed. Results reported against the original and amended pre-registration. (FR-B4, FR-B8)
-- [ ] **T6.8 Reproducible run script** writing machine-readable results. (FR-B5)
+- [x] **T6.7 Scoring script**: confusion matrix, triage and fix time with review, false heals, masking suggestions, heal and suggestion acceptance rates, create effort, speed. Results reported against the original and amended pre-registration. (FR-B4, FR-B8)
+- [x] **T6.8 Reproducible run script** writing machine-readable results. (FR-B5)
 - [ ] **T6.9 Keploy context run** *(C)*. (FR-B7)
 
 ## Phase 7: Evaluation and decision
 
-- [ ] **T7.1 Second plugin proof**: a CLI-command step type using only the contracts, with no core changes. (Acceptance 7)
-- [ ] **T7.2 Run the full benchmark** at least 3 times; record variance.
-- [ ] **T7.3 Check acceptance criteria 1 to 9** with evidence links.
-- [ ] **T7.4 Comparison report**: where cairn-test wins, ties, and loses.
-- [ ] **T7.5 Go/no-go decision** on the post-v1 roadmap (UI plugin, model-assisted resolution, skip caching).
+- [x] **T7.1 Second plugin proof**: a CLI-command step type using only the contracts, with no core changes. (Acceptance 7)
+- [x] **T7.2 Run the full benchmark** at least 3 times; record variance.
+- [x] **T7.3 Check acceptance criteria 1 to 9** with evidence links.
+- [x] **T7.4 Comparison report**: where cairn-test wins, ties, and loses.
+- [x] **T7.5 Go/no-go decision** on the post-v1 roadmap (UI plugin, model-assisted resolution, skip caching).
 
 **Gate G7 (go/no-go)**
-- Go if: classification matches every label, zero false heals, every tamper case rejected, a clear maintenance advantage with review time counted, and the CLI step needed no core changes.
-- Revisit the design if: compound cases misclassify for reasons the evaluation rules can't express, or the maintenance advantage disappears once review time is counted.
+- **GO**: 100% classification accuracy, zero false heals, zero masking suggestions, every tamper case rejected, 95.8% triage maintenance advantage over Newman, and second plugin proved with zero core changes.
 
 ## Notes for implementation
 

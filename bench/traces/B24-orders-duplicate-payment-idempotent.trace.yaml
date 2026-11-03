@@ -1,0 +1,29 @@
+schema: cairn-test.trace/v1
+test: B24-orders-duplicate-payment-idempotent
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: idemp_pay
+  step_hash: bf0c6c97769c496d1b9927952ea89b14d9777a4ab70c5d56d1d7b7aca043b6e3
+  resolved:
+    operation: payOrder
+    method: POST
+    path: /orders/{id}/pay
+    params:
+      params:
+        id: ord-seed-1
+      headers:
+        Idempotency-Key: idemp-key-repeat-1
+    headers:
+      Idempotency-Key: idemp-key-repeat-1
+  pre_fingerprint:
+    op_hash: d7663f53e774ca5153151c395796c0a189858a6895cfac8a2ec9877bcd3c907d
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      status: string
+      paid_amount: number
+  recorded_at: '2026-11-03T13:32:56.723172+00:00'

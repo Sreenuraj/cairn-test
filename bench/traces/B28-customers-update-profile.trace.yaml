@@ -1,0 +1,31 @@
+schema: cairn-test.trace/v1
+test: B28-customers-update-profile
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: update_me
+  step_hash: a0a1890939d6a744341b36f7e5f1dceacc8460ca0935198f2b7dbcd2995ee1cc
+  resolved:
+    operation: updateCustomer
+    method: PATCH
+    path: /customers/me
+    params:
+      headers:
+        Authorization: Bearer jwt-token-alice
+      body:
+        name: Alice Wonderland
+    headers:
+      Authorization: Bearer jwt-token-alice
+  pre_fingerprint:
+    op_hash: e55dce59d014e1bbec98a23daa6470be118b84fde19ed91bc7d87162014fff56
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      username: string
+      email: string
+      name: string
+      preference: string
+  recorded_at: '2026-11-03T13:32:56.728032+00:00'

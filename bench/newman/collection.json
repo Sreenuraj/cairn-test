@@ -1,0 +1,1293 @@
+{
+  "info": {
+    "_postman_id": "cairn-benchmark-suite",
+    "name": "Reference Store API 30-Behavior Suite",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "B01-auth-login-success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field user equals \"alice\"', function () { var json = pm.response.json(); pm.expect(json.user).to.eql(\"alice\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"alice\", \"password\": \"password123\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {
+        "token": "$.token"
+      }
+    },
+    {
+      "name": "B02-auth-login-invalid-credentials",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"alice\", \"password\": \"wrongpassword\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B03-products-list",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B04-products-get-by-id",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field id equals \"prod-1\"', function () { var json = pm.response.json(); pm.expect(json.id).to.eql(\"prod-1\"); });",
+              "pm.test('Field price equals 99.0', function () { var json = pm.response.json(); pm.expect(json.price).to.eql(99.0); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products/prod-1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products",
+            "prod-1"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B05-orders-create-single-item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Field total equals 49.98', function () { var json = pm.response.json(); pm.expect(json.total).to.eql(49.98); });",
+              "pm.test('Field status equals \"PLACED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PLACED\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ref\": \"ref-b05\", \"items\": [{\"sku\": \"prod-2\", \"qty\": 1, \"price\": 49.98}]}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {
+        "order_id": "$.id"
+      }
+    },
+    {
+      "name": "B06-orders-create-multi-item",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Field total equals 128.5', function () { var json = pm.response.json(); pm.expect(json.total).to.eql(128.5); });",
+              "pm.test('Field status equals \"PLACED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PLACED\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"ref\": \"ref-b06\", \"items\": [{\"sku\": \"prod-1\", \"qty\": 1, \"price\": 99.0}, {\"sku\": \"prod-3\", \"qty\": 1, \"price\": 29.5}]}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B07-orders-get-status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"PLACED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PLACED\"); });",
+              "pm.test('Field total equals 49.98', function () { var json = pm.response.json(); pm.expect(json.total).to.eql(49.98); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B08-orders-cancel-unpaid",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"CANCELLED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"CANCELLED\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1/cancel",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1",
+            "cancel"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B09-refunds-request-valid",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Field status equals \"APPROVED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"APPROVED\"); });",
+              "pm.test('Field amount equals 20.0', function () { var json = pm.response.json(); pm.expect(json.amount).to.eql(20.0); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/refunds",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "refunds"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"order_id\": \"ord-seed-1\", \"amount\": 20.0}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B10-compound-step-chain",
+      "item": [
+        {
+          "name": "login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"username\": \"alice\", \"password\": \"password123\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "_extract": {
+            "token": "$.token"
+          }
+        },
+        {
+          "name": "create",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                  "pm.test('Field total equals 49.98', function () { var json = pm.response.json(); pm.expect(json.total).to.eql(49.98); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {token}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ref\": \"chain-order\", \"items\": [{\"sku\": \"prod-2\", \"qty\": 1, \"price\": 49.98}]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "_extract": {
+            "order_id": "$.id"
+          }
+        },
+        {
+          "name": "get",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Field status equals \"PLACED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PLACED\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {token}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/orders/{order_id}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{order_id}"
+              ]
+            }
+          },
+          "_extract": {}
+        }
+      ]
+    },
+    {
+      "name": "B11-orders-negative-empty-items",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"items\": []}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B12-products-nonexistent-404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products/prod-999",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products",
+            "prod-999"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B13-auth-refresh-token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field token exists', function () { var json = pm.response.json(); pm.expect(json.token).to.not.be.undefined; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/refresh",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "refresh"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"refresh_token\": \"token-alice-123\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B14-auth-revoke-token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"logged_out\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"logged_out\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auth/logout",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auth",
+            "logout"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B15-products-filter-by-category",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products?category=electronics",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products?category=electronics"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B16-products-pagination",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field count equals 5', function () { var json = pm.response.json(); pm.expect(json.count).to.eql(5); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products?limit=5&offset=5",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products?limit=5&offset=5"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B17-products-inventory-check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field stock equals 42', function () { var json = pm.response.json(); pm.expect(json.stock).to.eql(42); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/products/prod-1/inventory",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "products",
+            "prod-1",
+            "inventory"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B18-orders-apply-coupon",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Field total equals 90.0', function () { var json = pm.response.json(); pm.expect(json.total).to.eql(90.0); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"items\": [{\"sku\": \"prod-1\", \"qty\": 1, \"price\": 100}], \"coupon\": \"SAVE10\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B19-orders-invalid-coupon",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 422', function () { pm.response.to.have.status(422); });",
+              "pm.test('Field error equals \"Expired coupon code\"', function () { var json = pm.response.json(); pm.expect(json.error).to.eql(\"Expired coupon code\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"items\": [{\"sku\": \"prod-1\", \"qty\": 1, \"price\": 100}], \"coupon\": \"EXPIRED\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B20-orders-list-user-orders",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer jwt-token-alice"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B21-orders-isolation-cross-user",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });",
+              "pm.test('Field error equals \"Forbidden\"', function () { var json = pm.response.json(); pm.expect(json.error).to.eql(\"Forbidden\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer jwt-token-bob"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B22-orders-update-shipping-address",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"UPDATED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"UPDATED\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1/shipping",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1",
+            "shipping"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"address\": \"123 Main St, New York, NY\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B23-orders-pay-with-card",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"PAID\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PAID\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1/pay",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1",
+            "pay"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B24-orders-duplicate-payment-idempotent",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"PAID\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"PAID\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Idempotency-Key",
+            "value": "idemp-key-repeat-1"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/orders/ord-seed-1/pay",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "orders",
+            "ord-seed-1",
+            "pay"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B25-refunds-full-order",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+              "pm.test('Field status equals \"REFUNDED\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"REFUNDED\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/refunds",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "refunds"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"order_id\": \"ord-seed-1\", \"amount\": 49.98}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B26-refunds-exceed-order-total",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });",
+              "pm.test('Field error exists', function () { var json = pm.response.json(); pm.expect(json.error).to.not.be.undefined; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/refunds",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "refunds"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"order_id\": \"ord-seed-1\", \"amount\": 999.0}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B27-customers-get-profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field username equals \"alice\"', function () { var json = pm.response.json(); pm.expect(json.username).to.eql(\"alice\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer jwt-token-alice"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/customers/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "customers",
+            "me"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B28-customers-update-profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field name equals \"Alice Wonderland\"', function () { var json = pm.response.json(); pm.expect(json.name).to.eql(\"Alice Wonderland\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer jwt-token-alice"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/customers/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "customers",
+            "me"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Alice Wonderland\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B29-system-health-check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field status equals \"HEALTHY\"', function () { var json = pm.response.json(); pm.expect(json.status).to.eql(\"HEALTHY\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "_extract": {}
+    },
+    {
+      "name": "B30-system-openapi-spec",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('Field openapi equals \"3.1.0\"', function () { var json = pm.response.json(); pm.expect(json.openapi).to.eql(\"3.1.0\"); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/openapi.json",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "openapi.json"
+          ]
+        }
+      },
+      "_extract": {}
+    }
+  ]
+}

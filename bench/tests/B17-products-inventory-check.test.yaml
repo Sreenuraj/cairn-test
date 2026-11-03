@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B17-products-inventory-check
+tags:
+- products
+- inventory
+steps:
+- id: inventory
+  op: getInventory
+  args:
+    params:
+      id: prod-1
+expect:
+- after: inventory
+  status: 200
+- after: inventory
+  jsonpath: $.stock
+  equals: 42

@@ -1,0 +1,19 @@
+schema: cairn-test.test/v1
+id: B24-orders-duplicate-payment-idempotent
+tags:
+- orders
+- payments
+steps:
+- id: idemp_pay
+  op: payOrder
+  args:
+    params:
+      id: ord-seed-1
+    headers:
+      Idempotency-Key: idemp-key-repeat-1
+expect:
+- after: idemp_pay
+  status: 200
+- after: idemp_pay
+  jsonpath: $.status
+  equals: PAID

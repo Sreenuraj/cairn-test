@@ -1,0 +1,27 @@
+schema: cairn-test.trace/v1
+test: B21-orders-isolation-cross-user
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: cross_user
+  step_hash: a39c7154d661b8c88c0d19138441dd7a199355714a08473b52af83b94eabca6e
+  resolved:
+    operation: getOrder
+    method: GET
+    path: /orders/{id}
+    params:
+      params:
+        id: ord-seed-1
+      headers:
+        Authorization: Bearer jwt-token-bob
+    headers:
+      Authorization: Bearer jwt-token-bob
+  pre_fingerprint:
+    op_hash: 5830909eb8716a5fe1f83a99fbce6eaa6be4ca484c05e3b5b7b521d40789a447
+  observation:
+    status: 403
+    headers:
+    - content-type
+    body_shape:
+      error: string
+  recorded_at: '2026-11-03T13:32:56.718946+00:00'

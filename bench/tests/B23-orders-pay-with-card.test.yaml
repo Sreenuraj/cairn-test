@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B23-orders-pay-with-card
+tags:
+- orders
+- payments
+steps:
+- id: pay
+  op: payOrder
+  args:
+    params:
+      id: ord-seed-1
+expect:
+- after: pay
+  status: 200
+- after: pay
+  jsonpath: $.status
+  equals: PAID

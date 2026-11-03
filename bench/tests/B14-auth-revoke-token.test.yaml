@@ -1,0 +1,14 @@
+schema: cairn-test.test/v1
+id: B14-auth-revoke-token
+tags:
+- auth
+steps:
+- id: logout
+  op: logout
+  args: {}
+expect:
+- after: logout
+  status: 200
+- after: logout
+  jsonpath: $.status
+  equals: logged_out

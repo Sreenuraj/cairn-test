@@ -430,3 +430,4 @@ if __name__ == "__main__":
     test_heal_limit_enforcement_zero_false_heals_zero_masking()
     test_accept_observations_batch()
     print("\nAll Phase 4 Healing & Impact tests passed successfully!")
+

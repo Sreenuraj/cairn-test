@@ -130,3 +130,4 @@ class Doctor:
             self.check_trust_root(),
             self.check_ci_pinning(),
         ]
+

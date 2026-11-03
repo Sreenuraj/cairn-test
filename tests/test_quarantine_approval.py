@@ -120,3 +120,4 @@ expect:
 if __name__ == "__main__":
     test_quarantine_requires_approved_edit()
     print("All T3.7 quarantine approval tests passed!")
+

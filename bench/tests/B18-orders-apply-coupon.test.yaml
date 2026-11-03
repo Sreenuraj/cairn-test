@@ -1,0 +1,21 @@
+schema: cairn-test.test/v1
+id: B18-orders-apply-coupon
+tags:
+- orders
+- discounts
+steps:
+- id: coupon_order
+  op: createOrder
+  args:
+    body:
+      items:
+      - sku: prod-1
+        qty: 1
+        price: 100
+      coupon: SAVE10
+expect:
+- after: coupon_order
+  status: 201
+- after: coupon_order
+  jsonpath: $.total
+  equals: 90.0

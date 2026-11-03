@@ -1,0 +1,19 @@
+schema: cairn-test.test/v1
+id: B21-orders-isolation-cross-user
+tags:
+- orders
+- security
+steps:
+- id: cross_user
+  op: getOrder
+  args:
+    params:
+      id: ord-seed-1
+    headers:
+      Authorization: Bearer jwt-token-bob
+expect:
+- after: cross_user
+  status: 403
+- after: cross_user
+  jsonpath: $.error
+  equals: Forbidden

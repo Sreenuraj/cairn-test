@@ -1,0 +1,30 @@
+schema: cairn-test.trace/v1
+test: B18-orders-apply-coupon
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: coupon_order
+  step_hash: 1f2ac7be7c71518ccca531031e05476deb2524ad9ebd6e3af12a2a3c41756103
+  resolved:
+    operation: createOrder
+    method: POST
+    path: /orders
+    params:
+      body:
+        items:
+        - sku: prod-1
+          qty: 1
+          price: 100
+        coupon: SAVE10
+    headers: {}
+  pre_fingerprint:
+    op_hash: 7669ea725b746bd9c2047f48f448756a1ed4327d29ff38ef45603341e52ae2a2
+  observation:
+    status: 201
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      total: number
+      status: string
+  recorded_at: '2026-11-03T13:32:56.715093+00:00'

@@ -156,7 +156,7 @@ def run_e1_checkpoint() -> dict[str, Any]:
 
     try:
         spec = OpenAPISpec.load(SPEC_FILE)
-        discovered_tests = discover_tests(TESTS_DIR)
+        discovered_tests = [t for t in discover_tests(TESTS_DIR) if "core" in t.get("tags", [])]
         assert len(discovered_tests) == 12
 
         traces_map = {}

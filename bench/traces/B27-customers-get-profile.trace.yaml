@@ -1,0 +1,29 @@
+schema: cairn-test.trace/v1
+test: B27-customers-get-profile
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: cust_me
+  step_hash: 28b22dfb405a36850dc171bd97d99cfee16738040b79fd02fad8d9379bc456be
+  resolved:
+    operation: getCustomer
+    method: GET
+    path: /customers/me
+    params:
+      headers:
+        Authorization: Bearer jwt-token-alice
+    headers:
+      Authorization: Bearer jwt-token-alice
+  pre_fingerprint:
+    op_hash: 096d0a0c7ab3be91b49df367dd2fa65b6982e438bb5f7c3917d37a06495c29ba
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      username: string
+      email: string
+      name: string
+      preference: string
+  recorded_at: '2026-11-03T13:32:56.726664+00:00'

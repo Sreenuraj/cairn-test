@@ -1,0 +1,28 @@
+schema: cairn-test.trace/v1
+test: B22-orders-update-shipping-address
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: update_ship
+  step_hash: adbbb8f0ca948100ea473140be827adc6a40d7e1d75ac36ee91296c02706bf4f
+  resolved:
+    operation: updateShipping
+    method: PUT
+    path: /orders/{id}/shipping
+    params:
+      params:
+        id: ord-seed-1
+      body:
+        address: 123 Main St, New York, NY
+    headers: {}
+  pre_fingerprint:
+    op_hash: ec28108c4ccbae21ad9bafbf6fc8594c34933e9c04d468376d9135e6e6d394ee
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      status: string
+      shipping_address: string
+  recorded_at: '2026-11-03T13:32:56.720472+00:00'

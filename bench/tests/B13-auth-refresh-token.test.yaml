@@ -1,0 +1,16 @@
+schema: cairn-test.test/v1
+id: B13-auth-refresh-token
+tags:
+- auth
+steps:
+- id: refresh
+  op: refresh
+  args:
+    body:
+      refresh_token: token-alice-123
+expect:
+- after: refresh
+  status: 200
+- after: refresh
+  jsonpath: $.token
+  exists: true

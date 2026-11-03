@@ -1,0 +1,15 @@
+schema: cairn-test.test/v1
+id: B29-system-health-check
+tags:
+- system
+- smoke
+steps:
+- id: health
+  op: getHealth
+  args: {}
+expect:
+- after: health
+  status: 200
+- after: health
+  jsonpath: $.status
+  equals: HEALTHY

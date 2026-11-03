@@ -1,0 +1,25 @@
+schema: cairn-test.trace/v1
+test: B29-system-health-check
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: health
+  step_hash: 7cfafeefefe21913f1ecd9f10c394b6a55ba10fa316ef48c3226ff6d8e993933
+  resolved:
+    operation: getHealth
+    method: GET
+    path: /health
+    params: {}
+    headers: {}
+  pre_fingerprint:
+    op_hash: 605595a00c2df69dd1df8724e6f50b8ca958044a5ae7cadd50d54b442f22ed96
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      status: string
+      components:
+        database: string
+        cache: string
+  recorded_at: '2026-11-03T13:32:56.729281+00:00'

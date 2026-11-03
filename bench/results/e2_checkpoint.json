@@ -1,0 +1,56 @@
+{
+  "checkpoint": "E2",
+  "iterations": 3,
+  "confusion_matrix": {
+    "matrix": {
+      "PASS": {
+        "PASS": 1725,
+        "FAIL": 0,
+        "DRIFT": 0,
+        "ERROR": 0
+      },
+      "FAIL": {
+        "PASS": 0,
+        "FAIL": 45,
+        "DRIFT": 0,
+        "ERROR": 0
+      },
+      "DRIFT": {
+        "PASS": 0,
+        "FAIL": 0,
+        "DRIFT": 120,
+        "ERROR": 0
+      }
+    },
+    "accuracy_pct": 100.0,
+    "total_evaluations": 1890,
+    "violations": [],
+    "passed": true
+  },
+  "maintenance": {
+    "cairn_test": {
+      "median_triage_s": 1.0,
+      "median_fix_s": 2.0,
+      "median_review_s": 1.0,
+      "median_total_maintenance_s": 4.0
+    },
+    "newman": {
+      "median_triage_s": 24.0,
+      "median_fix_s": 35.0,
+      "median_review_s": 12.0,
+      "median_total_maintenance_s": 71.0
+    },
+    "triage_improvement_pct": 95.83,
+    "total_maintenance_reduction_pct": 94.37,
+    "meets_triage_threshold": true
+  },
+  "repair_quality": {
+    "false_heals": 0,
+    "masking_suggestions": 0,
+    "total_proposals": 24,
+    "accepted_proposals": 24,
+    "acceptance_rate_pct": 100.0,
+    "zero_false_heals": true,
+    "zero_masking_suggestions": true
+  }
+}

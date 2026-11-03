@@ -131,6 +131,20 @@ paths:
                   status: { type: string }
         '400':
           description: Invalid order items
+    get:
+      operationId: getOrders
+      summary: List user orders
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [orders, count]
+                properties:
+                  orders: { type: array }
+                  count: { type: integer }
 
   /orders/{id}:
     get:
@@ -208,4 +222,211 @@ paths:
                   status: { type: string }
         '400':
           description: Refund exceeds order total
+
+  /auth/refresh:
+    post:
+      operationId: refresh
+      summary: Refresh authentication token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, expires_in]
+                properties:
+                  token: { type: string }
+                  expires_in: { type: integer }
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: User logout
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string }
+
+  /products/{id}/inventory:
+    get:
+      operationId: getInventory
+      summary: Get product inventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Inventory details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [product_id, stock]
+                properties:
+                  product_id: { type: string }
+                  stock: { type: integer }
+
+  /orders/{id}/shipping:
+    put:
+      operationId: updateShipping
+      summary: Update order shipping address
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address]
+              properties:
+                address: { type: string }
+      responses:
+        '200':
+          description: Shipping address updated
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status, shipping_address]
+                properties:
+                  id: { type: string }
+                  status: { type: string }
+                  shipping_address: { type: string }
+
+  /orders/{id}/pay:
+    post:
+      operationId: payOrder
+      summary: Process order payment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Payment successful
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status, paid_amount]
+                properties:
+                  id: { type: string }
+                  status: { type: string }
+                  paid_amount: { type: number }
+
+  /customers/me:
+    get:
+      operationId: getCustomer
+      summary: Retrieve current customer profile
+      responses:
+        '200':
+          description: Customer profile
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, username, email]
+                properties:
+                  id: { type: string }
+                  username: { type: string }
+                  email: { type: string }
+                  name: { type: string }
+                  preference: { type: string }
+    patch:
+      operationId: updateCustomer
+      summary: Update current customer profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                preference: { type: string }
+      responses:
+        '200':
+          description: Customer profile updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  preference: { type: string }
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: System health check
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, components]
+                properties:
+                  status: { type: string }
+                  components: { type: object }
+
+  /openapi.json:
+    get:
+      operationId: getOpenApiSpec
+      summary: OpenAPI specification
+      responses:
+        '200':
+          description: OpenAPI JSON specification
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /orders/search:
+    post:
+      operationId: searchOrders
+      summary: Search orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array }
+                  count: { type: integer }
 

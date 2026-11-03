@@ -42,3 +42,4 @@ jobs:
           CAIRN_ALLOWED_SIGNERS: ${{ secrets.CAIRN_ALLOWED_SIGNERS }}
         run: |
           uv run cairn-test run --strict
+

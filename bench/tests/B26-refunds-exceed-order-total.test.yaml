@@ -1,0 +1,18 @@
+schema: cairn-test.test/v1
+id: B26-refunds-exceed-order-total
+tags:
+- refunds
+- negative
+steps:
+- id: over_refund
+  op: requestRefund
+  args:
+    body:
+      order_id: ord-seed-1
+      amount: 999.0
+expect:
+- after: over_refund
+  status: 400
+- after: over_refund
+  jsonpath: $.error
+  exists: true

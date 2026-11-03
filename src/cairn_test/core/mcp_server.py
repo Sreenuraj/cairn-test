@@ -169,3 +169,4 @@ class McpServer:
                 out = {"jsonrpc": "2.0", "id": None, "error": str(e)}
                 sys.stdout.write(json.dumps(out) + "\n")
                 sys.stdout.flush()
+

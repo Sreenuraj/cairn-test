@@ -1,0 +1,21 @@
+schema: cairn-test.test/v1
+id: B19-orders-invalid-coupon
+tags:
+- orders
+- negative
+steps:
+- id: bad_coupon
+  op: createOrder
+  args:
+    body:
+      items:
+      - sku: prod-1
+        qty: 1
+        price: 100
+      coupon: EXPIRED
+expect:
+- after: bad_coupon
+  status: 422
+- after: bad_coupon
+  jsonpath: $.error
+  equals: Expired coupon code

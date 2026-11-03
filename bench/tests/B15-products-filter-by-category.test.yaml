@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B15-products-filter-by-category
+tags:
+- products
+steps:
+- id: filter
+  op: getProducts
+  args:
+    params:
+      category: electronics
+expect:
+- after: filter
+  status: 200
+- after: filter
+  jsonpath: $.count
+  range:
+    min: 1

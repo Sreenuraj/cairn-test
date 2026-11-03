@@ -1,0 +1,22 @@
+schema: cairn-test.trace/v1
+test: B14-auth-revoke-token
+env_profile: local
+spec_hash: 05481e9f14b5bc329533518ae758e36b9d16eae39c8f23109fc812d8e61fd133
+steps:
+- id: logout
+  step_hash: 0e737c7cdc0ecea8ed1df81c2e22dc02905824be4e88ed4b2920463190484316
+  resolved:
+    operation: logout
+    method: POST
+    path: /auth/logout
+    params: {}
+    headers: {}
+  pre_fingerprint:
+    op_hash: 5f38784e9369bc61d5083edf3cd7fbaefb83efcaea8b30fbddff5f90fd20158f
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      status: string
+  recorded_at: '2026-11-03T13:32:56.709521+00:00'
