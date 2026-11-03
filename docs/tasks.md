@@ -61,7 +61,7 @@ If a checkpoint fails, write down why before changing the design.
 - [x] **T0.6 Approval specification**: canonical serialization, what `covers` must include, signature namespace, trust-root lookup order, reason codes (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`). (FR-R4, FR-V1, FR-V2)
 - [x] **T0.7 UI plugin paper sketch**: list the pressures on each contract (sessions, waits, nondeterminism, observation shape, visual evidence) and the open questions. (FR-P5)
   Done when: the sketch exists and either confirms the contracts or lists concrete contract changes. It does not need to settle UI diff rules.
-- [~] **T0.8 Pre-registration** (`bench/preregistration.md`, `bench/behaviors.yaml`):
+- [x] **T0.8 Pre-registration** (`bench/preregistration.md`, `bench/behaviors.yaml`):
   - the 30 behaviors and the 12-behavior core subset;
   - every seeded change with the expected outcome per test and the expected mechanism;
   - metrics and analysis;
@@ -74,19 +74,19 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 1: Core with a fake plugin
 
-- [ ] **T1.1 Project skeleton**, config loading, logging, and an import test that keeps HTTP, browser, and model libraries out of the core. (NFR-8)
-- [ ] **T1.2 Loaders and validators** for every schema. (FR-C1, FR-C2)
-- [ ] **T1.3 Event bus and stores**: JSONL writer, SQLite schema, artifact store; every result records plugin and framework versions. (FR-C7, FR-C8, FR-O6, FR-P4)
-- [ ] **T1.4 Plugin registry** and the wrapper that calls plugins and emits events. (FR-P2, FR-P3)
-- [ ] **T1.5 Expectation evaluator**: `reads` against the observation diff, `unevaluable`, blocked steps. (FR-C13, FR-C14)
-- [ ] **T1.6 Outcome engine** implementing T0.4. (FR-C5, FR-C6)
+- [x] **T1.1 Project skeleton**, config loading, logging, and an import test that keeps HTTP, browser, and model libraries out of the core. (NFR-8)
+- [x] **T1.2 Loaders and validators** for every schema. (FR-C1, FR-C2)
+- [x] **T1.3 Event bus and stores**: JSONL writer, SQLite schema, artifact store; every result records plugin and framework versions. (FR-C7, FR-C8, FR-O6, FR-P4)
+- [x] **T1.4 Plugin registry** and the wrapper that calls plugins and emits events. (FR-P2, FR-P3)
+- [x] **T1.5 Expectation evaluator**: `reads` against the observation diff, `unevaluable`, blocked steps. (FR-C13, FR-C14)
+- [x] **T1.6 Outcome engine** implementing T0.4. (FR-C5, FR-C6)
   Done when: the T0.4 fixture passes completely.
-- [ ] **T1.7 Planner**: selection by tag and id, quarantine, reasons. (FR-C3, FR-C11)
-- [ ] **T1.8 Scheduler and workers**: isolation, parallelism, `{run.uid}` and `{worker.id}`, serial execution for `hermetic: false`, timeouts. (FR-C4, FR-C18, FR-C12 *(S)*)
-- [ ] **T1.9 Fake plugin** that can script every outcome, expectation value, and compound case. (FR-C10)
-- [ ] **T1.10 CLI core**: `run` (dev mode) with `--json` output, stable exit codes, and a basic text report. (FR-C9, FR-G1)
-- [ ] **T1.11 `explain`** from stored events, basic version. (FR-G2, FR-O7)
-- [ ] **T1.12 Core unit tests** using only the fake plugin. (NFR-9, NFR-6)
+- [x] **T1.7 Planner**: selection by tag and id, quarantine, reasons. (FR-C3, FR-C11)
+- [x] **T1.8 Scheduler and workers**: isolation, parallelism, `{run.uid}` and `{worker.id}`, serial execution for `hermetic: false`, timeouts. (FR-C4, FR-C18, FR-C12 *(S)*)
+- [x] **T1.9 Fake plugin** that can script every outcome, expectation value, and compound case. (FR-C10)
+- [x] **T1.10 CLI core**: `run` (dev mode) with `--json` output, stable exit codes, and a basic text report. (FR-C9, FR-G1)
+- [x] **T1.11 `explain`** from stored events, basic version. (FR-G2, FR-O7)
+- [x] **T1.12 Core unit tests** using only the fake plugin. (NFR-9, NFR-6)
 
 **Gate G1**: a mixed suite on the fake plugin produces every outcome and compound case with correct explanations, and identical output across 10 runs.
 

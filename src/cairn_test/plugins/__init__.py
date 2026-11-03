@@ -1,0 +1,3 @@
+"""
+cairn-test plugins package.
+"""

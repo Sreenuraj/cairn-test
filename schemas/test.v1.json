@@ -67,6 +67,12 @@
           "op": {
             "type": "string"
           },
+          "kind": {
+            "type": "string"
+          },
+          "timeout_ms": {
+            "type": "integer"
+          },
           "auth": {
             "type": "string"
           },
@@ -84,7 +90,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "after": { "type": "string" },
           "status": {
