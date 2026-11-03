@@ -1,0 +1,23 @@
+schema: cairn-test.trace/v1
+test: B12-products-nonexistent-404
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: get_404
+  step_hash: 6ff6041e50d250812d8cd38bc04142db6993026d05a4ad936064607d6d10b85f
+  resolved:
+    operation: getProduct
+    method: GET
+    path: /products/{id}
+    params:
+      id: prod-999
+    headers: {}
+  pre_fingerprint:
+    op_hash: 4bfbe682fab18f15800cf78f4e93efdfc8d0180994680795291be69f9a0bcb5a
+  observation:
+    status: 404
+    headers:
+    - content-type
+    body_shape:
+      error: string
+  recorded_at: '2026-11-03T10:16:32.351885+00:00'

@@ -1,0 +1,33 @@
+schema: cairn-test.trace/v1
+test: B06-orders-create-multi-item
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: create_multi
+  step_hash: e5b1c9455a9043e14f6f97d8954e3ed19295da46f04baaa0e718bd62df35e0f1
+  resolved:
+    operation: createOrder
+    method: POST
+    path: /orders
+    params:
+      body:
+        ref: ref-b06
+        items:
+        - sku: prod-1
+          qty: 1
+          price: 99.0
+        - sku: prod-3
+          qty: 1
+          price: 29.5
+    headers: {}
+  pre_fingerprint:
+    op_hash: 7669ea725b746bd9c2047f48f448756a1ed4327d29ff38ef45603341e52ae2a2
+  observation:
+    status: 201
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      total: number
+      status: string
+  recorded_at: '2026-11-03T10:16:32.344719+00:00'

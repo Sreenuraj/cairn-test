@@ -1,0 +1,27 @@
+schema: cairn-test.test/v1
+id: B06-orders-create-multi-item
+tags:
+- orders
+- core
+steps:
+- id: create_multi
+  op: createOrder
+  args:
+    body:
+      ref: ref-b06
+      items:
+      - sku: prod-1
+        qty: 1
+        price: 99.0
+      - sku: prod-3
+        qty: 1
+        price: 29.5
+expect:
+- after: create_multi
+  status: 201
+- after: create_multi
+  jsonpath: $.total
+  equals: 128.5
+- after: create_multi
+  jsonpath: $.status
+  equals: PLACED

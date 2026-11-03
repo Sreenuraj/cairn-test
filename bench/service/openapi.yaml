@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: Reference Store API
+  version: 1.0.0
+  description: Reference stateful target API for the cairn-test benchmark
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      summary: User authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [token, user]
+                properties:
+                  token: { type: string }
+                  user: { type: string }
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+
+  /products:
+    get:
+      operationId: getProducts
+      summary: List products
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: offset
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, count]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, name, price]
+                      properties:
+                        id: { type: string }
+                        name: { type: string }
+                        price: { type: number }
+                  count: { type: integer }
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      summary: Get single product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, name, price]
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  price: { type: number }
+        '404':
+          description: Product not found
+
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                ref: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [sku, qty, price]
+                    properties:
+                      sku: { type: string }
+                      qty: { type: integer }
+                      price: { type: number }
+      responses:
+        '201':
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, total, status]
+                properties:
+                  id: { type: string }
+                  total: { type: number }
+                  status: { type: string }
+        '400':
+          description: Invalid order items
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      summary: Get order details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, total, status]
+                properties:
+                  id: { type: string }
+                  total: { type: number }
+                  status: { type: string }
+        '403':
+          description: Forbidden
+        '404':
+          description: Order not found
+
+  /orders/{id}/cancel:
+    post:
+      operationId: cancelOrder
+      summary: Cancel unpaid order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id: { type: string }
+                  status: { type: string }
+
+  /refunds:
+    post:
+      operationId: requestRefund
+      summary: Request refund
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [order_id, amount]
+              properties:
+                order_id: { type: string }
+                amount: { type: number }
+      responses:
+        '201':
+          description: Refund accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, order_id, amount, status]
+                properties:
+                  id: { type: string }
+                  order_id: { type: string }
+                  amount: { type: number }
+                  status: { type: string }
+        '400':
+          description: Refund exceeds order total

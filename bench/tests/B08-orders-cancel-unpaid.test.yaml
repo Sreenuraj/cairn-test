@@ -1,0 +1,16 @@
+schema: cairn-test.test/v1
+id: B08-orders-cancel-unpaid
+tags:
+- orders
+- core
+steps:
+- id: cancel_order
+  op: cancelOrder
+  args:
+    id: ord-seed-1
+expect:
+- after: cancel_order
+  status: 200
+- after: cancel_order
+  jsonpath: $.status
+  equals: CANCELLED

@@ -1,0 +1,14 @@
+schema: cairn-test.test/v1
+id: B12-products-nonexistent-404
+tags:
+- products
+- negative
+- core
+steps:
+- id: get_404
+  op: getProduct
+  args:
+    id: prod-999
+expect:
+- after: get_404
+  status: 404

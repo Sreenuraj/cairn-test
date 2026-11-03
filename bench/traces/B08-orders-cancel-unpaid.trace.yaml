@@ -1,0 +1,24 @@
+schema: cairn-test.trace/v1
+test: B08-orders-cancel-unpaid
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: cancel_order
+  step_hash: bdd63075f981c2298b977757e1f19d9da9b73fe0964d67bb0400e0009a61fa44
+  resolved:
+    operation: cancelOrder
+    method: POST
+    path: /orders/{id}/cancel
+    params:
+      id: ord-seed-1
+    headers: {}
+  pre_fingerprint:
+    op_hash: 27984f1e1ee3998233a7bc5ca5eb875934e7f3a2d0de2bbf69ab20710f1bd574
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      status: string
+  recorded_at: '2026-11-03T10:16:32.346846+00:00'

@@ -1,0 +1,21 @@
+schema: cairn-test.test/v1
+id: B09-refunds-request-valid
+tags:
+- refunds
+- core
+steps:
+- id: refund
+  op: requestRefund
+  args:
+    body:
+      order_id: ord-seed-1
+      amount: 20.0
+expect:
+- after: refund
+  status: 201
+- after: refund
+  jsonpath: $.status
+  equals: APPROVED
+- after: refund
+  jsonpath: $.amount
+  equals: 20.0

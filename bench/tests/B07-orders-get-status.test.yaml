@@ -1,0 +1,19 @@
+schema: cairn-test.test/v1
+id: B07-orders-get-status
+tags:
+- orders
+- core
+steps:
+- id: get_order
+  op: getOrder
+  args:
+    id: ord-seed-1
+expect:
+- after: get_order
+  status: 200
+- after: get_order
+  jsonpath: $.status
+  equals: PLACED
+- after: get_order
+  jsonpath: $.total
+  equals: 49.98

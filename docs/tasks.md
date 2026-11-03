@@ -92,16 +92,16 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 2: API plugin
 
-- [ ] **T2.1 OpenAPI ingestion** and normalized operation hashing, including `$ref` resolution. (FR-A1)
-- [ ] **T2.2 HTTP step executor**: explicit `op`, templating, binding, JSONPath extraction; JSON bodies and status-only checks for other content types. (FR-A2)
-- [ ] **T2.3 Auth helpers.** (FR-A6)
-- [ ] **T2.4 Assertion types** with static `reads`: status, header, jsonpath, schema-from-spec, state. (FR-A3)
-- [ ] **T2.5 API Observer and response diff**, passing the T0.5 fixtures. (FR-A4, FR-A5, FR-C15)
-- [ ] **T2.6 Evidence collector with masking** for secrets and PII, plus a scanning test. (FR-C8, NFR-5)
-- [ ] **T2.7 Trace writer (minimal)** so hand-written tests can record observations for E1. Full `record` comes in Phase 3. (FR-R2, partial)
-- [ ] **T2.8 Plugin tests** against a local mock server, then the reference API (T6.1).
-- [ ] **T2.9 Performance baseline**: measure per-step overhead and planning time; confirm or revise NFR-2 and NFR-3. (NFR-2, NFR-3)
-- [ ] **T2.10 E1 run**: the 12-behavior subset against every pre-registered seeded change; record the confusion matrix and apply the E1 kill criteria.
+- [x] **T2.1 OpenAPI ingestion** and normalized operation hashing, including `$ref` resolution. (FR-A1)
+- [x] **T2.2 HTTP step executor**: explicit `op`, templating, binding, JSONPath extraction; JSON bodies and status-only checks for other content types. (FR-A2)
+- [x] **T2.3 Auth helpers.** (FR-A6)
+- [x] **T2.4 Assertion types** with static `reads`: status, header, jsonpath, schema-from-spec, state. (FR-A3)
+- [x] **T2.5 API Observer and response diff**, passing the T0.5 fixtures. (FR-A4, FR-A5, FR-C15)
+- [x] **T2.6 Evidence collector with masking** for secrets and PII, plus a scanning test. (FR-C8, NFR-5)
+- [x] **T2.7 Trace writer (minimal)** so hand-written tests can record observations for E1. Full `record` comes in Phase 3. (FR-R2, partial)
+- [x] **T2.8 Plugin tests** against a local mock server, then the reference API (T6.1).
+- [x] **T2.9 Performance baseline**: measure per-step overhead and planning time; confirm or revise NFR-2 and NFR-3. (NFR-2, NFR-3)
+- [x] **T2.10 E1 run**: the 12-behavior subset against every pre-registered seeded change; record the confusion matrix and apply the E1 kill criteria.
 
 **Gate G2 / Checkpoint E1**: the hand-written explicit-`op` subset against the reference API gives the labeled outcome for every pre-registered seeded change, compound cases included (E1 kill criteria above).
 
@@ -149,8 +149,8 @@ If a checkpoint fails, write down why before changing the design.
 
 T6.1 and T6.2 (core subset) start in parallel with Phase 1; the rest of the catalog and T6.3 to T6.5 come before E2.
 
-- [ ] **T6.1 Reference target API** (about 12 endpoints, stateful), with a spec. (FR-B1)
-- [ ] **T6.2 Seeded changes** as switchable flags, labeled per T0.8. (FR-B1)
+- [x] **T6.1 Reference target API** (about 12 endpoints, stateful), with a spec. (FR-B1)
+- [x] **T6.2 Seeded changes** as switchable flags, labeled per T0.8. (FR-B1)
 - [ ] **T6.3 Time-logging protocol**: how wall-clock time, authored lines, and review time are recorded for every tool and task, with triage and fix logged separately. The same LLM assistant and the same inputs (failing output and spec diff) for all suites. (FR-B3)
 - [ ] **T6.4 cairn-test suite** of the 30 behaviors, logged. (FR-B2)
 - [ ] **T6.5 Newman suite** of the 30 behaviors, LLM-assisted, logged. (FR-B2, FR-B3)

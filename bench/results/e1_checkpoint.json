@@ -1,0 +1,315 @@
+{
+  "checkpoint": "E1",
+  "passed": true,
+  "violations": [],
+  "confusion_matrix": {
+    "PASS": {
+      "PASS": 15,
+      "FAIL": 0,
+      "DRIFT": 0,
+      "ERROR": 0
+    },
+    "FAIL": {
+      "PASS": 0,
+      "FAIL": 6,
+      "DRIFT": 0,
+      "ERROR": 0
+    },
+    "DRIFT": {
+      "PASS": 0,
+      "FAIL": 0,
+      "DRIFT": 11,
+      "ERROR": 0
+    }
+  },
+  "evaluations": [
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B01-auth-login-success",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B02-auth-login-invalid-credentials",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B03-products-list",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B04-products-get-by-id",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B07-orders-get-status",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B08-orders-cancel-unpaid",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B09-refunds-request-valid",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B10-compound-step-chain",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B11-orders-negative-empty-items",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BASELINE",
+      "test_id": "B12-products-nonexistent-404",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-REQ-2",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-REQ-2",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-REQ-4",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-REQ-4",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-1",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-1",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-1",
+      "test_id": "B07-orders-get-status",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-3",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-3",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "C-RES-3",
+      "test_id": "B07-orders-get-status",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BUG-1",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BUG-1",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BUG-2",
+      "test_id": "B11-orders-negative-empty-items",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BUG-5",
+      "test_id": "B09-refunds-request-valid",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BEN-1",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "BEN-1",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "PASS",
+      "actual": "PASS",
+      "has_drift_detail": false,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "CMP-1",
+      "test_id": "B05-orders-create-single-item",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "CMP-1",
+      "test_id": "B06-orders-create-multi-item",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "CMP-3",
+      "test_id": "B11-orders-negative-empty-items",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    },
+    {
+      "seed_id": "CMP-4",
+      "test_id": "B10-compound-step-chain",
+      "expected": "DRIFT",
+      "actual": "DRIFT",
+      "has_drift_detail": true,
+      "reason": null,
+      "matched": true
+    }
+  ]
+}

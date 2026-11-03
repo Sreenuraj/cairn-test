@@ -1,0 +1,27 @@
+schema: cairn-test.test/v1
+id: B05-orders-create-single-item
+tags:
+- orders
+- smoke
+- core
+steps:
+- id: create_order
+  op: createOrder
+  args:
+    body:
+      ref: ref-b05
+      items:
+      - sku: prod-2
+        qty: 1
+        price: 49.98
+  extract:
+    order_id: $.id
+expect:
+- after: create_order
+  status: 201
+- after: create_order
+  jsonpath: $.total
+  equals: 49.98
+- after: create_order
+  jsonpath: $.status
+  equals: PLACED

@@ -1,0 +1,26 @@
+schema: cairn-test.trace/v1
+test: B01-auth-login-success
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: login
+  step_hash: 78b50df3f9600926ac251e66727373a5aef74bf47dd07cc7734a290d12525105
+  resolved:
+    operation: login
+    method: POST
+    path: /auth/login
+    params:
+      body:
+        username: alice
+        password: password123
+    headers: {}
+  pre_fingerprint:
+    op_hash: 27b4adebcc0a646e1263ffb3dd97a3fa8cabe982df12c85b8ea3148451fc054b
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      token: string
+      user: string
+  recorded_at: '2026-11-03T10:16:32.338969+00:00'

@@ -1,0 +1,15 @@
+schema: cairn-test.test/v1
+id: B11-orders-negative-empty-items
+tags:
+- orders
+- negative
+- core
+steps:
+- id: create_empty
+  op: createOrder
+  args:
+    body:
+      items: []
+expect:
+- after: create_empty
+  status: 400

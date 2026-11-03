@@ -26,6 +26,9 @@ from cairn_test.config import Config
 from cairn_test.core.events import EventBus, EventStore, FRAMEWORK_VERSION
 from cairn_test.core.explain import explain_test
 from cairn_test.core.planner import Planner, discover_tests
+from cairn_test.plugins.api.plugin import register_api_plugin
+from cairn_test.plugins.api.record import record_test_trace
+from cairn_test.plugins.api.spec import OpenAPISpec
 from cairn_test.core.plugins import PluginRegistry
 from cairn_test.core.scheduler import Scheduler
 from cairn_test.core.schemas import load_trace
@@ -69,9 +72,16 @@ def run_command(args: argparse.Namespace) -> int:
     store = EventStore(base_dir=store_dir)
     bus = EventBus(run_id=run_id, store=store)
 
+    base_url = args.base_url if hasattr(args, "base_url") and args.base_url else config.env_profiles.get(env_profile, {}).get("base_url", "")
+    spec = None
+    spec_path = args.spec if hasattr(args, "spec") and args.spec else config.spec
+    if spec_path and Path(spec_path).is_file():
+        spec = OpenAPISpec.load(spec_path)
+
     registry = PluginRegistry()
-    # Register default plugins (fake plugin registered in Phase 1)
+    # Register default plugins
     register_fake_plugin(registry)
+    register_api_plugin(registry, spec=spec, base_url=base_url)
 
     # Tag & ID filters
     tag_filter = [t.strip() for t in args.tags.split(",")] if args.tags else None
@@ -206,6 +216,41 @@ def explain_command(args: argparse.Namespace) -> int:
             print(f"Drift Detail: {info['drift_detail']}")
     return EXIT_PASS
 
+def record_command(args: argparse.Namespace) -> int:
+    config = Config.load()
+    base_url = args.base_url or config.env_profiles.get(config.default_env, {}).get("base_url", "http://localhost:8080")
+    tests_dir = Path(args.tests_dir)
+    traces_dir = Path(args.traces_dir)
+
+    spec = None
+    spec_path = args.spec or config.spec
+    if spec_path and Path(spec_path).is_file():
+        spec = OpenAPISpec.load(spec_path)
+
+    discovered = discover_tests(tests_dir)
+    if args.id:
+        target_ids = set(args.id.split(","))
+        discovered = [t for t in discovered if t["id"] in target_ids]
+
+    if not discovered:
+        print(f"No matching tests found to record in {tests_dir}")
+        return EXIT_CLI_ERROR
+
+    recorded_count = 0
+    for test_def in discovered:
+        p = record_test_trace(
+            test_def=test_def,
+            spec=spec,
+            base_url=base_url,
+            env_profile=args.env or config.default_env,
+            output_dir=traces_dir,
+        )
+        print(f"Recorded trace for '{test_def['id']}' -> {p}")
+        recorded_count += 1
+
+    print(f"Successfully recorded {recorded_count} traces.")
+    return EXIT_PASS
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="cairn-test",
@@ -220,10 +265,21 @@ def main() -> None:
     run_parser.add_argument("--tags", type=str, help="Filter tests by tags (comma-separated)")
     run_parser.add_argument("--id", type=str, help="Filter tests by test ID (comma-separated)")
     run_parser.add_argument("--env", type=str, help="Environment profile to target")
+    run_parser.add_argument("--base-url", type=str, help="Target API base URL")
+    run_parser.add_argument("--spec", type=str, help="OpenAPI spec path")
     run_parser.add_argument("--parallelism", type=int, help="Number of worker threads")
     run_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
     run_parser.add_argument("--traces-dir", type=str, default="traces", help="Directory containing trace files")
     run_parser.add_argument("--include-quarantined", action="store_true", help="Execute quarantined tests")
+
+    # record command
+    rec_parser = subparsers.add_parser("record", help="Record traces for tests")
+    rec_parser.add_argument("--id", type=str, help="Specific test ID(s) to record (comma-separated)")
+    rec_parser.add_argument("--spec", type=str, help="Path to OpenAPI specification")
+    rec_parser.add_argument("--base-url", type=str, help="Target API base URL")
+    rec_parser.add_argument("--env", type=str, help="Environment profile name")
+    rec_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
+    rec_parser.add_argument("--traces-dir", type=str, default="traces", help="Directory to write traces")
 
     # explain command
     explain_parser = subparsers.add_parser("explain", help="Explain test outcome from stored artifacts")
@@ -234,6 +290,9 @@ def main() -> None:
     parsed = parser.parse_args()
     if parsed.command == "run":
         code = run_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "record":
+        code = record_command(parsed)
         sys.exit(code)
     elif parsed.command == "explain":
         code = explain_command(parsed)

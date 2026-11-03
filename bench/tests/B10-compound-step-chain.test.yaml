@@ -1,0 +1,45 @@
+schema: cairn-test.test/v1
+id: B10-compound-step-chain
+tags:
+- orders
+- integration
+- core
+steps:
+- id: login
+  op: login
+  args:
+    body:
+      username: alice
+      password: password123
+  extract:
+    token: $.token
+- id: create
+  op: createOrder
+  auth: '{token}'
+  args:
+    body:
+      ref: chain-order
+      items:
+      - sku: prod-2
+        qty: 1
+        price: 49.98
+  extract:
+    order_id: $.id
+- id: get
+  op: getOrder
+  auth: '{token}'
+  args:
+    id: '{order_id}'
+expect:
+- after: login
+  status: 200
+- after: create
+  status: 201
+- after: create
+  jsonpath: $.total
+  equals: 49.98
+- after: get
+  status: 200
+- after: get
+  jsonpath: $.status
+  equals: PLACED

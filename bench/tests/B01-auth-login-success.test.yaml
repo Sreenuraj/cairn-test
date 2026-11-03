@@ -1,0 +1,21 @@
+schema: cairn-test.test/v1
+id: B01-auth-login-success
+tags:
+- auth
+- smoke
+- core
+steps:
+- id: login
+  op: login
+  args:
+    body:
+      username: alice
+      password: password123
+  extract:
+    token: $.token
+expect:
+- after: login
+  status: 200
+- after: login
+  jsonpath: $.user
+  equals: alice

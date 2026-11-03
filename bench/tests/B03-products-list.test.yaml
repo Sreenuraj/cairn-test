@@ -1,0 +1,17 @@
+schema: cairn-test.test/v1
+id: B03-products-list
+tags:
+- products
+- core
+steps:
+- id: list_products
+  op: getProducts
+  args: {}
+expect:
+- after: list_products
+  status: 200
+- after: list_products
+  jsonpath: $.count
+  range:
+    min: 1
+    max: 100

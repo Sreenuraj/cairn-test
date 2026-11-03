@@ -1,0 +1,19 @@
+schema: cairn-test.test/v1
+id: B04-products-get-by-id
+tags:
+- products
+- core
+steps:
+- id: get_product
+  op: getProduct
+  args:
+    id: prod-1
+expect:
+- after: get_product
+  status: 200
+- after: get_product
+  jsonpath: $.id
+  equals: prod-1
+- after: get_product
+  jsonpath: $.price
+  equals: 99.0

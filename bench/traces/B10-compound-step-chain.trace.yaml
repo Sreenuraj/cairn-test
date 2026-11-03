@@ -1,0 +1,77 @@
+schema: cairn-test.trace/v1
+test: B10-compound-step-chain
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: login
+  step_hash: 78b50df3f9600926ac251e66727373a5aef74bf47dd07cc7734a290d12525105
+  resolved:
+    operation: login
+    method: POST
+    path: /auth/login
+    params:
+      body:
+        username: alice
+        password: password123
+    headers: {}
+  pre_fingerprint:
+    op_hash: 27b4adebcc0a646e1263ffb3dd97a3fa8cabe982df12c85b8ea3148451fc054b
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      token: string
+      user: string
+  recorded_at: '2026-11-03T10:16:32.348939+00:00'
+- id: create
+  step_hash: 9c35409d2b9141be0a34e4d2b30995647630cf54a7fd2f451b7c436833a84d53
+  resolved:
+    operation: createOrder
+    method: POST
+    path: /orders
+    params:
+      body:
+        ref: chain-order
+        items:
+        - sku: prod-2
+          qty: 1
+          price: 49.98
+    headers: {}
+  pre_fingerprint:
+    op_hash: 7669ea725b746bd9c2047f48f448756a1ed4327d29ff38ef45603341e52ae2a2
+  observation:
+    status: 201
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      total: number
+      status: string
+  recorded_at: '2026-11-03T10:16:32.349192+00:00'
+- id: get
+  step_hash: 6008bc099b52803506ccd6ddb8608398a6a64f6bf78b4476730c96afe88fafc5
+  resolved:
+    operation: getOrder
+    method: GET
+    path: /orders/{id}
+    params:
+      id: ord-2
+    headers: {}
+  pre_fingerprint:
+    op_hash: 5830909eb8716a5fe1f83a99fbce6eaa6be4ca484c05e3b5b7b521d40789a447
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      user: string
+      ref: string
+      items:
+      - sku: string
+        qty: integer
+        price: number
+      total: number
+      status: string
+  recorded_at: '2026-11-03T10:16:32.349415+00:00'

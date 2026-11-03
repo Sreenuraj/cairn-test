@@ -1,0 +1,26 @@
+schema: cairn-test.trace/v1
+test: B03-products-list
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: list_products
+  step_hash: 7074c1813f2c5d41a8c89a4cd21db90a159c5afba026b1bcc7c228cee97b0765
+  resolved:
+    operation: getProducts
+    method: GET
+    path: /products
+    params: {}
+    headers: {}
+  pre_fingerprint:
+    op_hash: 1c31ddffe4ecc3528a95188bec129a2546c3a3d0a07b7f42f792078d3c6260cf
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      items:
+      - id: string
+        name: string
+        price: number
+      count: integer
+  recorded_at: '2026-11-03T10:16:32.341497+00:00'

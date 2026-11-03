@@ -1,0 +1,28 @@
+schema: cairn-test.trace/v1
+test: B09-refunds-request-valid
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: refund
+  step_hash: 2061a54e635514da79781d9d524a652f8c2749f57bd9d644125013ce81f9e956
+  resolved:
+    operation: requestRefund
+    method: POST
+    path: /refunds
+    params:
+      body:
+        order_id: ord-seed-1
+        amount: 20.0
+    headers: {}
+  pre_fingerprint:
+    op_hash: bb448f8304e0ec3e73348c942a7b53777b55be156d16c01d6788592bc2e6be36
+  observation:
+    status: 201
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      order_id: string
+      amount: number
+      status: string
+  recorded_at: '2026-11-03T10:16:32.347776+00:00'

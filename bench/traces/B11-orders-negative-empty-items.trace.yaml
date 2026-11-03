@@ -1,0 +1,24 @@
+schema: cairn-test.trace/v1
+test: B11-orders-negative-empty-items
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: create_empty
+  step_hash: 7c7be7352bd5c0f0af75167314aba0055d7f0221ff8728ee4fd47856a21efa88
+  resolved:
+    operation: createOrder
+    method: POST
+    path: /orders
+    params:
+      body:
+        items: []
+    headers: {}
+  pre_fingerprint:
+    op_hash: 7669ea725b746bd9c2047f48f448756a1ed4327d29ff38ef45603341e52ae2a2
+  observation:
+    status: 400
+    headers:
+    - content-type
+    body_shape:
+      error: string
+  recorded_at: '2026-11-03T10:16:32.351000+00:00'

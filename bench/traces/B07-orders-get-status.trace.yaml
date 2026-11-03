@@ -1,0 +1,31 @@
+schema: cairn-test.trace/v1
+test: B07-orders-get-status
+env_profile: local
+spec_hash: 25968332dd54eef64d4ce165f3539a7cdd648ec2019ebb425871dfd086509879
+steps:
+- id: get_order
+  step_hash: 59a7648fa543ad760b7bda9a3f52923685201ed4ee627cab27490f970434d4a0
+  resolved:
+    operation: getOrder
+    method: GET
+    path: /orders/{id}
+    params:
+      id: ord-seed-1
+    headers: {}
+  pre_fingerprint:
+    op_hash: 5830909eb8716a5fe1f83a99fbce6eaa6be4ca484c05e3b5b7b521d40789a447
+  observation:
+    status: 200
+    headers:
+    - content-type
+    body_shape:
+      id: string
+      user: string
+      ref: string
+      items:
+      - sku: string
+        qty: integer
+        price: number
+      total: number
+      status: string
+  recorded_at: '2026-11-03T10:16:32.345786+00:00'
