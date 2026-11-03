@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn-test.org/schemas/event.v1.json",
+  "title": "cairn-test Event Schema v1",
+  "type": "object",
+  "required": ["schema", "run_id", "sequence", "timestamp", "type", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cairn-test.event/v1"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "run.started",
+        "approval.verified",
+        "test.planned",
+        "step.executed",
+        "step.blocked",
+        "observation.diffed",
+        "expectation.evaluated",
+        "test.finished",
+        "proposal.created",
+        "approval.signed",
+        "run.finished"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn-test.org/schemas/result.v1.json",
+  "title": "cairn-test Result Schema v1",
+  "type": "object",
+  "required": ["schema", "run_id", "test", "outcome", "duration_ms", "versions", "recorded_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cairn-test.result/v1"
+    },
+    "run_id": {
+      "type": "string"
+    },
+    "test": {
+      "type": "string"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["PASS", "FAIL", "DRIFT", "ERROR", "SKIPPED"]
+    },
+    "duration_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "reason": {
+      "type": "string"
+    },
+    "drift_detail": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["value"],
+        "additionalProperties": false,
+        "properties": {
+          "after": { "type": "string" },
+          "kind": { "type": "string" },
+          "value": {
+            "type": "string",
+            "enum": ["true", "false", "unevaluable"]
+          },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "versions": {
+      "type": "object",
+      "required": ["framework", "plugins"],
+      "additionalProperties": false,
+      "properties": {
+        "framework": { "type": "string" },
+        "plugins": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

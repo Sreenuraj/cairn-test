@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn-test.org/schemas/trace.v1.json",
+  "title": "cairn-test Trace Schema v1",
+  "type": "object",
+  "required": ["schema", "test", "env_profile", "spec_hash", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cairn-test.trace/v1"
+    },
+    "test": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "env_profile": {
+      "type": "string"
+    },
+    "spec_hash": {
+      "type": "string"
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "step_hash", "resolved", "pre_fingerprint", "observation", "recorded_at"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "step_hash": {
+            "type": "string"
+          },
+          "resolved": {
+            "type": "object",
+            "required": ["operation", "method", "path"],
+            "additionalProperties": false,
+            "properties": {
+              "operation": { "type": "string" },
+              "method": {
+                "type": "string",
+                "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "TRACE"]
+              },
+              "path": { "type": "string" },
+              "params": { "type": "object" },
+              "headers": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              }
+            }
+          },
+          "pre_fingerprint": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "op_hash": { "type": "string" }
+            }
+          },
+          "observation": {
+            "type": "object",
+            "required": ["status"],
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 599
+              },
+              "headers": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "body_shape": {}
+            }
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

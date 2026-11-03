@@ -1,0 +1,353 @@
+version: "1.0"
+description: "Observation and spec diff rules fixtures for the API plugin as defined in plan.md section 14"
+
+response_rules:
+  - id: "field_added"
+    description: "A new response field is observed that was not recorded"
+    rule: "Field added -> additive"
+    expected_class: "additive"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+        total: "number"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+        total: "number"
+        discount: "number"
+    expected_changes:
+      - path: "$.discount"
+        kind: "additive"
+
+  - id: "header_added"
+    description: "A new response header is observed"
+    rule: "Header added -> additive"
+    expected_class: "additive"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+    observed:
+      status: 200
+      headers: ["content-type", "x-request-id"]
+      body_shape:
+        id: "string"
+    expected_changes:
+      - path: "headers.x-request-id"
+        kind: "additive"
+
+  - id: "key_order_changed"
+    description: "Keys in response JSON object are reordered"
+    rule: "Key order changed -> identical"
+    expected_class: "identical"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        a: "string"
+        b: "number"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        b: "number"
+        a: "string"
+    expected_changes: []
+
+  - id: "array_length_changed"
+    description: "Array length in response changes while element shape remains identical"
+    rule: "Array length changed -> identical"
+    expected_class: "identical"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        items:
+          - sku: "string"
+            qty: "integer"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        items:
+          - sku: "string"
+            qty: "integer"
+          - sku: "string"
+            qty: "integer"
+    expected_changes: []
+
+  - id: "field_removed"
+    description: "A recorded field is missing in observed response"
+    rule: "Field removed -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+        total: "number"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+    expected_changes:
+      - path: "$.total"
+        kind: "breaking"
+
+  - id: "field_type_number_to_string"
+    description: "A field's type changes from number to string"
+    rule: "Field type changed (number to string) -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        total: "number"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        total: "string"
+    expected_changes:
+      - path: "$.total"
+        kind: "breaking"
+
+  - id: "field_type_object_to_array"
+    description: "A field's structure changes from object to array"
+    rule: "Field type changed (object to array) -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        customer:
+          name: "string"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        customer:
+          - name: "string"
+    expected_changes:
+      - path: "$.customer"
+        kind: "breaking"
+
+  - id: "field_observed_null"
+    description: "A field is observed as null where it was previously non-null"
+    rule: "Field now observed as null where it was never null -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        total: "number"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        total: "null"
+    expected_changes:
+      - path: "$.total"
+        kind: "breaking"
+
+  - id: "header_removed"
+    description: "A recorded response header is missing"
+    rule: "Header removed -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type", "etag"]
+      body_shape:
+        id: "string"
+    observed:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+    expected_changes:
+      - path: "headers.etag"
+        kind: "breaking"
+
+  - id: "status_code_changed"
+    description: "HTTP status code changes from 200 to 404"
+    rule: "Status code changed -> breaking"
+    expected_class: "breaking"
+    recorded:
+      status: 200
+      headers: ["content-type"]
+      body_shape:
+        id: "string"
+    observed:
+      status: 404
+      headers: ["content-type"]
+      body_shape:
+        error: "string"
+    expected_changes:
+      - path: "$.status"
+        kind: "breaking"
+
+request_rules:
+  - id: "param_optional_added"
+    description: "A new optional parameter added to the OpenAPI spec"
+    rule: "New optional parameter -> additive"
+    expected_class: "additive"
+    recorded_spec:
+      op: "getProducts"
+      parameters:
+        - name: "limit"
+          in: "query"
+          required: false
+          schema: { type: "integer" }
+    observed_spec:
+      op: "getProducts"
+      parameters:
+        - name: "limit"
+          in: "query"
+          required: false
+          schema: { type: "integer" }
+        - name: "sort"
+          in: "query"
+          required: false
+          schema: { type: "string" }
+    expected_mechanism: "none"
+
+  - id: "param_required_added"
+    description: "A new required parameter added to the spec"
+    rule: "New required parameter -> breaking (value request)"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "createOrder"
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required: ["items"]
+              properties:
+                items: { type: "array" }
+    observed_spec:
+      op: "createOrder"
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              required: ["items", "customer_id"]
+              properties:
+                items: { type: "array" }
+                customer_id: { type: "string" }
+    expected_mechanism: "value-request"
+
+  - id: "param_removed"
+    description: "An existing parameter removed from the operation"
+    rule: "Removed parameter -> breaking"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "getOrders"
+      parameters:
+        - name: "customerId"
+          in: "query"
+          required: true
+          schema: { type: "string" }
+    observed_spec:
+      op: "getOrders"
+      parameters: []
+    expected_mechanism: "heal"
+
+  - id: "param_type_changed"
+    description: "Parameter schema type changes from integer to string"
+    rule: "Changed parameter type -> breaking"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "getOrder"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema: { type: "integer" }
+    observed_spec:
+      op: "getOrder"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema: { type: "string" }
+    expected_mechanism: "heal"
+
+  - id: "path_changed_same_op"
+    description: "Endpoint path changes for the same operationId"
+    rule: "Changed path with unchanged operationId -> breaking (healable)"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "createOrder"
+      path: "/orders"
+      method: "POST"
+    observed_spec:
+      op: "createOrder"
+      path: "/v2/orders"
+      method: "POST"
+    expected_mechanism: "heal"
+
+  - id: "method_changed_same_op"
+    description: "HTTP method changes for the same operationId"
+    rule: "Changed method with unchanged operationId -> breaking (healable)"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "updateOrder"
+      path: "/orders/{id}"
+      method: "PUT"
+    observed_spec:
+      op: "updateOrder"
+      path: "/orders/{id}"
+      method: "PATCH"
+    expected_mechanism: "heal"
+
+  - id: "param_moved_query_to_body"
+    description: "Parameter placement moves from query to requestBody"
+    rule: "Parameter placement changed -> breaking (healable)"
+    expected_class: "breaking"
+    recorded_spec:
+      op: "filterOrders"
+      method: "POST"
+      path: "/orders/search"
+      params: { query: ["status"] }
+    observed_spec:
+      op: "filterOrders"
+      method: "POST"
+      path: "/orders/search"
+      params: { body: ["status"] }
+    expected_mechanism: "heal"
+
+  - id: "enum_value_added_to_response"
+    description: "An enum definition in the response schema expands with a new allowed value"
+    rule: "Enum values added to response -> additive"
+    expected_class: "additive"
+    recorded_spec:
+      response_schema:
+        status: { type: "string", enum: ["PENDING", "COMPLETED"] }
+    observed_spec:
+      response_schema:
+        status: { type: "string", enum: ["PENDING", "COMPLETED", "REFUNDED"] }
+    expected_mechanism: "none"
+
+  - id: "enum_value_removed_from_response"
+    description: "An enum definition in response schema removes an allowed value"
+    rule: "Enum values removed from response -> breaking"
+    expected_class: "breaking"
+    recorded_spec:
+      response_schema:
+        status: { type: "string", enum: ["PENDING", "COMPLETED", "REFUNDED"] }
+    observed_spec:
+      response_schema:
+        status: { type: "string", enum: ["PENDING", "COMPLETED"] }
+    expected_mechanism: "expectation-change"

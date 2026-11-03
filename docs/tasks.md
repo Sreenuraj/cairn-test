@@ -51,17 +51,17 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 0: Specification (no engine code)
 
-- [ ] **T0.1 Decide the implementation language.** Default: Python 3.12 (JSON Schema, CEL, and OpenAPI libraries are mature; contracts stay JSON-Schema-first). (plan.md section 4)
-- [ ] **T0.2 JSON Schemas** for test, trace, approval, proposal, event, and result records. (FR-C1, FR-C2, NFR-4)
+- [x] **T0.1 Decide the implementation language.** Default: Python 3.12 (JSON Schema, CEL, and OpenAPI libraries are mature; contracts stay JSON-Schema-first). (plan.md section 4)
+- [x] **T0.2 JSON Schemas** for test, trace, approval, proposal, event, and result records. (FR-C1, FR-C2, NFR-4)
   Done when: the examples in `plan.md` validate, and a set of invalid examples is rejected with useful messages.
-- [ ] **T0.3 Plugin contract definitions** with doc comments: inputs, outputs, what a plugin must never do. (FR-P1, FR-P2)
-- [ ] **T0.4 Outcome decision table** as a fixture file: outcomes, precedence, expectation values (`true`, `false`, `unevaluable`, blocked), and every compound case in `plan.md` 6.3. (FR-C5, FR-C6, FR-C13, FR-C14)
+- [x] **T0.3 Plugin contract definitions** with doc comments: inputs, outputs, what a plugin must never do. (FR-P1, FR-P2)
+- [x] **T0.4 Outcome decision table** as a fixture file: outcomes, precedence, expectation values (`true`, `false`, `unevaluable`, blocked), and every compound case in `plan.md` 6.3. (FR-C5, FR-C6, FR-C13, FR-C14)
   Done when: each row has input conditions and an expected outcome, ready to be used as the outcome engine's test oracle.
-- [ ] **T0.5 Observation and diff rules** for the API plugin as fixtures: one recorded/observed pair per rule in `plan.md` section 14, response and request side. (FR-C15, FR-A5, FR-A7)
-- [ ] **T0.6 Approval specification**: canonical serialization, what `covers` must include, signature namespace, trust-root lookup order, reason codes (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`). (FR-R4, FR-V1, FR-V2)
-- [ ] **T0.7 UI plugin paper sketch**: list the pressures on each contract (sessions, waits, nondeterminism, observation shape, visual evidence) and the open questions. (FR-P5)
+- [x] **T0.5 Observation and diff rules** for the API plugin as fixtures: one recorded/observed pair per rule in `plan.md` section 14, response and request side. (FR-C15, FR-A5, FR-A7)
+- [x] **T0.6 Approval specification**: canonical serialization, what `covers` must include, signature namespace, trust-root lookup order, reason codes (`unapproved`, `tampered`, `bad-signature`, `unknown-signer`). (FR-R4, FR-V1, FR-V2)
+- [x] **T0.7 UI plugin paper sketch**: list the pressures on each contract (sessions, waits, nondeterminism, observation shape, visual evidence) and the open questions. (FR-P5)
   Done when: the sketch exists and either confirms the contracts or lists concrete contract changes. It does not need to settle UI diff rules.
-- [ ] **T0.8 Pre-registration** (`bench/preregistration.md`, `bench/behaviors.yaml`):
+- [~] **T0.8 Pre-registration** (`bench/preregistration.md`, `bench/behaviors.yaml`):
   - the 30 behaviors and the 12-behavior core subset;
   - every seeded change with the expected outcome per test and the expected mechanism;
   - metrics and analysis;

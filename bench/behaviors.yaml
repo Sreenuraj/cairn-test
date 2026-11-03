@@ -1,0 +1,216 @@
+version: "1.0"
+service: "reference-store-api"
+description: "Catalog of 30 test behaviors for the cairn-test benchmark, with 12 core subset behaviors for Checkpoint E1"
+
+behaviors:
+  # Core Subset for E1 (12 behaviors)
+  - id: "B01"
+    name: "auth-login-success"
+    core_subset: true
+    endpoint: "POST /auth/login"
+    summary: "Successful authentication returns JWT bearer token and user profile"
+    tags: ["auth", "smoke"]
+
+  - id: "B02"
+    name: "auth-login-invalid-credentials"
+    core_subset: true
+    endpoint: "POST /auth/login"
+    summary: "Login with invalid password returns 401 Unauthorized"
+    tags: ["auth", "negative"]
+
+  - id: "B03"
+    name: "products-list"
+    core_subset: true
+    endpoint: "GET /products"
+    summary: "List available products returns active catalog with pricing"
+    tags: ["products"]
+
+  - id: "B04"
+    name: "products-get-by-id"
+    core_subset: true
+    endpoint: "GET /products/{id}"
+    summary: "Retrieve single product details by valid ID"
+    tags: ["products"]
+
+  - id: "B05"
+    name: "orders-create-single-item"
+    core_subset: true
+    endpoint: "POST /orders"
+    summary: "Create new order with single item calculates correct line total"
+    tags: ["orders", "smoke"]
+
+  - id: "B06"
+    name: "orders-create-multi-item"
+    core_subset: true
+    endpoint: "POST /orders"
+    summary: "Create new order with multiple items calculates sum and taxes"
+    tags: ["orders"]
+
+  - id: "B07"
+    name: "orders-get-status"
+    core_subset: true
+    endpoint: "GET /orders/{id}"
+    summary: "Fetch order state and confirm status equals PLACED"
+    tags: ["orders"]
+
+  - id: "B08"
+    name: "orders-cancel-unpaid"
+    core_subset: true
+    endpoint: "POST /orders/{id}/cancel"
+    summary: "Cancel unpaid order updates status to CANCELLED"
+    tags: ["orders"]
+
+  - id: "B09"
+    name: "refunds-request-valid"
+    core_subset: true
+    endpoint: "POST /refunds"
+    summary: "Request partial refund for eligible fulfilled order"
+    tags: ["refunds"]
+
+  - id: "B10"
+    name: "compound-step-chain"
+    core_subset: true
+    endpoint: "POST /auth/login -> POST /orders -> GET /orders/{id}"
+    summary: "Multi-step test chaining token and order ID across operations"
+    tags: ["orders", "integration"]
+
+  - id: "B11"
+    name: "orders-negative-empty-items"
+    core_subset: true
+    endpoint: "POST /orders"
+    summary: "Submitting order with empty items array returns 400 Bad Request"
+    tags: ["orders", "negative"]
+
+  - id: "B12"
+    name: "products-nonexistent-404"
+    core_subset: true
+    endpoint: "GET /products/{id}"
+    summary: "Requesting nonexistent product ID returns 404 Not Found"
+    tags: ["products", "negative"]
+
+  # Remaining Behaviors for E2 (18 behaviors)
+  - id: "B13"
+    name: "auth-refresh-token"
+    core_subset: false
+    endpoint: "POST /auth/refresh"
+    summary: "Valid refresh token issues new access token"
+    tags: ["auth"]
+
+  - id: "B14"
+    name: "auth-revoke-token"
+    core_subset: false
+    endpoint: "POST /auth/logout"
+    summary: "Logout invalidates current access token"
+    tags: ["auth"]
+
+  - id: "B15"
+    name: "products-filter-by-category"
+    core_subset: false
+    endpoint: "GET /products?category={cat}"
+    summary: "Filter catalog by specific category query parameter"
+    tags: ["products"]
+
+  - id: "B16"
+    name: "products-pagination"
+    core_subset: false
+    endpoint: "GET /products?limit=5&offset=5"
+    summary: "Paginated catalog retrieval respects page size and offset"
+    tags: ["products"]
+
+  - id: "B17"
+    name: "products-inventory-check"
+    core_subset: false
+    endpoint: "GET /products/{id}/inventory"
+    summary: "Query stock levels for a product"
+    tags: ["products", "inventory"]
+
+  - id: "B18"
+    name: "orders-apply-coupon"
+    core_subset: false
+    endpoint: "POST /orders"
+    summary: "Valid coupon code applies percentage discount to order total"
+    tags: ["orders", "discounts"]
+
+  - id: "B19"
+    name: "orders-invalid-coupon"
+    core_subset: false
+    endpoint: "POST /orders"
+    summary: "Expired coupon code returns 422 Unprocessable Entity"
+    tags: ["orders", "negative"]
+
+  - id: "B20"
+    name: "orders-list-user-orders"
+    core_subset: false
+    endpoint: "GET /orders"
+    summary: "Authenticated user retrieves history of their own orders"
+    tags: ["orders"]
+
+  - id: "B21"
+    name: "orders-isolation-cross-user"
+    core_subset: false
+    endpoint: "GET /orders/{other_user_order_id}"
+    summary: "Fetching another customer's order returns 403 Forbidden"
+    tags: ["orders", "security"]
+
+  - id: "B22"
+    name: "orders-update-shipping-address"
+    core_subset: false
+    endpoint: "PUT /orders/{id}/shipping"
+    summary: "Update delivery address before dispatch"
+    tags: ["orders"]
+
+  - id: "B23"
+    name: "orders-pay-with-card"
+    core_subset: false
+    endpoint: "POST /orders/{id}/pay"
+    summary: "Process payment for order transitions status to PAID"
+    tags: ["orders", "payments"]
+
+  - id: "B24"
+    name: "orders-duplicate-payment-idempotent"
+    core_subset: false
+    endpoint: "POST /orders/{id}/pay"
+    summary: "Replaying payment with same idempotency key does not double-charge"
+    tags: ["orders", "payments"]
+
+  - id: "B25"
+    name: "refunds-full-order"
+    core_subset: false
+    endpoint: "POST /refunds"
+    summary: "Full refund restores order state to REFUNDED"
+    tags: ["refunds"]
+
+  - id: "B26"
+    name: "refunds-exceed-order-total"
+    core_subset: false
+    endpoint: "POST /refunds"
+    summary: "Refund amount greater than order payment returns 400 Bad Request"
+    tags: ["refunds", "negative"]
+
+  - id: "B27"
+    name: "customers-get-profile"
+    core_subset: false
+    endpoint: "GET /customers/me"
+    summary: "Retrieve authenticated customer profile and email"
+    tags: ["customers"]
+
+  - id: "B28"
+    name: "customers-update-profile"
+    core_subset: false
+    endpoint: "PATCH /customers/me"
+    summary: "Update customer display name and contact preference"
+    tags: ["customers"]
+
+  - id: "B29"
+    name: "system-health-check"
+    core_subset: false
+    endpoint: "GET /health"
+    summary: "Service readiness check returns 200 with component statuses"
+    tags: ["system", "smoke"]
+
+  - id: "B30"
+    name: "system-openapi-spec"
+    core_subset: false
+    endpoint: "GET /openapi.json"
+    summary: "Spec endpoint serves valid OpenAPI 3.1 specification"
+    tags: ["system"]

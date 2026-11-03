@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn-test.org/schemas/test.v1.json",
+  "title": "cairn-test Test Definition Schema v1",
+  "type": "object",
+  "required": ["schema", "id", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cairn-test.test/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "description": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "hermetic": {
+      "type": "boolean",
+      "default": true
+    },
+    "touches": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "quarantine": {
+      "oneOf": [
+        { "type": "boolean" },
+        {
+          "type": "object",
+          "required": ["reason"],
+          "additionalProperties": false,
+          "properties": {
+            "reason": { "type": "string" },
+            "until": { "type": "string" },
+            "ticket": { "type": "string" }
+          }
+        }
+      ]
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null", "array", "object"]
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "op"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "op": {
+            "type": "string"
+          },
+          "auth": {
+            "type": "string"
+          },
+          "args": {
+            "type": "object"
+          },
+          "extract": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        }
+      }
+    },
+    "expect": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "after": { "type": "string" },
+          "status": {
+            "oneOf": [
+              { "type": "integer", "minimum": 100, "maximum": 599 },
+              { "type": "string" }
+            ]
+          },
+          "header": {
+            "oneOf": [
+              { "type": "string" },
+              {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+              }
+            ]
+          },
+          "jsonpath": { "type": "string" },
+          "equals": {},
+          "matches": { "type": "string" },
+          "exists": { "type": "boolean" },
+          "in": { "type": "array" },
+          "range": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "min": { "type": "number" },
+              "max": { "type": "number" }
+            }
+          },
+          "schema": {
+            "type": "string"
+          },
+          "property": {
+            "type": "string"
+          },
+          "state": {
+            "type": "object",
+            "required": ["op"],
+            "additionalProperties": false,
+            "properties": {
+              "op": { "type": "string" },
+              "args": { "type": "object" },
+              "jsonpath": { "type": "string" },
+              "equals": {},
+              "status": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cairn-test.org/schemas/proposal.v1.json",
+  "title": "cairn-test Proposal Schema v1",
+  "type": "object",
+  "required": ["schema", "id", "kind", "test", "created_at", "reason", "details"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cairn-test.proposal/v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["heal", "value-request", "expectation-change", "observation-update", "draft"]
+    },
+    "test": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "approved", "rejected"],
+      "default": "pending"
+    },
+    "details": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "step_id": { "type": "string" },
+        "old_resolved": { "type": "object" },
+        "new_resolved": { "type": "object" },
+        "spec_diff": { "type": "object" },
+        "dry_run": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["true", "false", "unevaluable"]
+          }
+        },
+        "param_name": { "type": "string" },
+        "old_path": { "type": "string" },
+        "suggested_path": { "type": "string" },
+        "candidates": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "observation_diff": { "type": "object" },
+        "draft_test": { "type": "object" }
+      }
+    }
+  }
+}

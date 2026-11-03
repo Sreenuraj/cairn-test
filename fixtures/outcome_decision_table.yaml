@@ -1,0 +1,414 @@
+version: "1.0"
+description: "Outcome decision table fixture and oracle for cairn-test core outcome engine"
+rows:
+  - id: "normal_pass"
+    description: "All steps executed cleanly, observations identical, all expectations evaluate true"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "true"
+    expected:
+      outcome: "PASS"
+      expectations:
+        - id: "e1"
+          value: "true"
+        - id: "e2"
+          value: "true"
+      has_drift_detail: false
+
+  - id: "benign_additive_pass"
+    description: "New optional field added (additive change), all expectations true -> PASS with additive note"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: ["$.new_optional_field"]
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "true"
+    expected:
+      outcome: "PASS"
+      expectations:
+        - id: "e1"
+          value: "true"
+        - id: "e2"
+          value: "true"
+      has_drift_detail: false
+
+  - id: "behavioral_bug_only"
+    description: "No observation diff, but an expectation evaluates false -> FAIL"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "false"
+    expected:
+      outcome: "FAIL"
+      expectations:
+        - id: "e1"
+          value: "true"
+        - id: "e2"
+          value: "false"
+      has_drift_detail: false
+
+  - id: "additive_change_plus_bug"
+    description: "Additive change present and an expectation evaluates false -> FAIL"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: ["$.new_optional_field"]
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "false"
+    expected:
+      outcome: "FAIL"
+      expectations:
+        - id: "e1"
+          value: "true"
+        - id: "e2"
+          value: "false"
+      has_drift_detail: false
+
+  - id: "contract_change_only"
+    description: "Asserted field renamed/removed; breaking diff matches expectation reads -> expectation unevaluable -> DRIFT"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: ["$.total"]
+            additive_paths: ["$.grand_total"]
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "missing"
+    expected:
+      outcome: "DRIFT"
+      expectations:
+        - id: "e1"
+          value: "true"
+        - id: "e2"
+          value: "unevaluable"
+          reason: "breaking-diff:$.total"
+      has_drift_detail: true
+
+  - id: "missing_field_without_diff_entry"
+    description: "Asserted field is missing with NO diff entry to explain it -> expectation false -> FAIL (plan 6.2 rule 3)"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.user.email"]
+          raw_eval: "missing"
+    expected:
+      outcome: "FAIL"
+      expectations:
+        - id: "e1"
+          value: "false"
+      has_drift_detail: false
+
+  - id: "contract_change_plus_unrelated_bug"
+    description: "One expectation unevaluable due to breaking diff, another expectation false -> FAIL with drift detail (precedence: FAIL > DRIFT)"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: ["$.customer.discount"]
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.customer.discount"]
+          raw_eval: "missing"
+        - id: "e2"
+          step_id: "s1"
+          reads: ["$.total"]
+          raw_eval: "false"
+    expected:
+      outcome: "FAIL"
+      expectations:
+        - id: "e1"
+          value: "unevaluable"
+          reason: "breaking-diff:$.customer.discount"
+        - id: "e2"
+          value: "false"
+      has_drift_detail: true
+
+  - id: "operation_removed_404"
+    description: "Recorded endpoint returns 404; status breaking diff -> status expectation unevaluable -> DRIFT"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: ["$.status"]
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "missing"
+    expected:
+      outcome: "DRIFT"
+      expectations:
+        - id: "e1"
+          value: "unevaluable"
+          reason: "breaking-diff:$.status"
+      has_drift_detail: true
+
+  - id: "pre_fingerprint_mismatch_only"
+    description: "Spec hash changed before run; observation identical and expectations true -> DRIFT"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: false
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "true"
+    expected:
+      outcome: "DRIFT"
+      expectations:
+        - id: "e1"
+          value: "true"
+      has_drift_detail: true
+
+  - id: "earlier_step_drift_blocks_later_step"
+    description: "Step 1 drifts (breaking diff), step 2 cannot extract order_id -> step 2 blocked by step 1 -> DRIFT"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: null
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: ["$.id"]
+            additive_paths: []
+        - id: "s2"
+          transport_error: null
+          pre_fingerprint_match: true
+          blocked_by: "s1"
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.id"]
+          raw_eval: "missing"
+        - id: "e2"
+          step_id: "s2"
+          reads: ["$.status"]
+          raw_eval: "unevaluable"
+    expected:
+      outcome: "DRIFT"
+      expectations:
+        - id: "e1"
+          value: "unevaluable"
+          reason: "breaking-diff:$.id"
+        - id: "e2"
+          value: "unevaluable"
+          reason: "blocked-by:s1"
+      has_drift_detail: true
+
+  - id: "earlier_step_error_blocks_later_step"
+    description: "Step 1 connection refused (ERROR), step 2 blocked -> ERROR"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: "connection_refused"
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+        - id: "s2"
+          transport_error: null
+          pre_fingerprint_match: true
+          blocked_by: "s1"
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "missing"
+        - id: "e2"
+          step_id: "s2"
+          reads: ["$.status"]
+          raw_eval: "unevaluable"
+    expected:
+      outcome: "ERROR"
+      expectations:
+        - id: "e1"
+          value: "unevaluable"
+          reason: "transport-error:connection_refused"
+        - id: "e2"
+          value: "unevaluable"
+          reason: "blocked-by:s1"
+      has_drift_detail: false
+
+  - id: "connection_refused_step1"
+    description: "Connection refused on step 1 -> ERROR"
+    inputs:
+      planned: "EXECUTE"
+      verification: "valid"
+      steps:
+        - id: "s1"
+          transport_error: "connection_refused"
+          pre_fingerprint_match: true
+          observation_diff:
+            breaking_paths: []
+            additive_paths: []
+      expectations:
+        - id: "e1"
+          step_id: "s1"
+          reads: ["$.status"]
+          raw_eval: "missing"
+    expected:
+      outcome: "ERROR"
+      expectations:
+        - id: "e1"
+          value: "unevaluable"
+          reason: "transport-error:connection_refused"
+      has_drift_detail: false
+
+  - id: "strict_verification_tampered"
+    description: "Strict mode approval verification fails (content tampered) -> ERROR before run"
+    inputs:
+      planned: "EXECUTE"
+      verification: "tampered"
+      steps: []
+      expectations: []
+    expected:
+      outcome: "ERROR"
+      reason: "tampered"
+      expectations: []
+      has_drift_detail: false
+
+  - id: "strict_verification_missing_trace"
+    description: "Strict mode missing trace file -> ERROR before run"
+    inputs:
+      planned: "EXECUTE"
+      verification: "missing-trace"
+      steps: []
+      expectations: []
+    expected:
+      outcome: "ERROR"
+      reason: "missing-trace"
+      expectations: []
+      has_drift_detail: false
+
+  - id: "planner_quarantined"
+    description: "Test has quarantine tag -> SKIPPED (quarantined)"
+    inputs:
+      planned: "SKIPPED"
+      skip_reason: "quarantined"
+      verification: "valid"
+      steps: []
+      expectations: []
+    expected:
+      outcome: "SKIPPED"
+      reason: "quarantined"
+      expectations: []
+      has_drift_detail: false
+
+  - id: "planner_filtered"
+    description: "Test filtered out by tags/id -> SKIPPED (filtered)"
+    inputs:
+      planned: "SKIPPED"
+      skip_reason: "filtered"
+      verification: "valid"
+      steps: []
+      expectations: []
+    expected:
+      outcome: "SKIPPED"
+      reason: "filtered"
+      expectations: []
+      has_drift_detail: false
