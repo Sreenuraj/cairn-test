@@ -1,7 +1,97 @@
-.DS_Store
+# ==========================================
+# cairn-test .gitignore
+# ==========================================
+
+# --- Secrets, Credentials & Keys ---
+*.env
+*.env.*
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.pkcs12
+*id_rsa*
+*id_ecdsa*
+*id_ed25519*
+*id_dsa*
+allowed_signers
+known_hosts
+authorized_keys
+
+# --- cairn-test Runtime & Output Artifacts ---
 .cairn-test/
 reports/
+junit*.xml
+*.log
+*.sqlite
+*.sqlite3
+
+# --- Python Bytecode & Packaging ---
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual Environments ---
 .venv/
+venv/
+ENV/
+env/
+.uv/
+
+# --- Testing & Quality Assurance ---
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+
+# --- IDEs & Editors ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# --- Operating System Files ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# --- Node / Misc ---
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
