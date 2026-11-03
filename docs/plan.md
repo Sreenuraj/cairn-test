@@ -418,6 +418,25 @@ All commands support `--json`. Exit codes are documented and stable.
 
 An MCP server exposing `run`, `explain`, `impact`, `status`, and `propose` over the same API is a "should" in v1, after the CLI is stable.
 
+### 13.1 Developer Experience & Ecosystem Enablement (v1.1 Roadmap)
+
+To minimize onboarding friction as the framework evolves beyond v1, three developer experience assets are specified:
+
+1. **`cairn-test tutorial` Interactive CLI**:
+   A built-in command that launches an ephemeral local instance of the reference target API on an unused port, scaffolds a temporary sandbox workspace, and guides the developer through authoring a declarative YAML test, executing `cairn-test record`, inspecting the proposal diff with `cairn-test review`, generating an ephemeral SSH approval key to sign `cairn-test approve`, and replaying tests in `--strict` mode with step-by-step terminal visual feedback.
+
+2. **VS Code / IDE YAML Schema Integration**:
+   Direct integration with the RedHat YAML Language Server via `# yaml-language-server: $schema=...` pragmas embedded by `init` and `draft`, alongside an automated `.vscode/settings.json` generator. Maps `schemas/test.v1.json`, `schemas/trace.v1.json`, and `schemas/approval.v1.json` to project file globs (`tests/*.test.yaml`, `traces/*.trace.yaml`, `approvals/*.approval.yaml`) to provide instant hover documentation, JSONPath/operation autocompletion, and real-time schema validation across VS Code, JetBrains IDEs, and Cursor.
+
+3. **Plugin Developer Kit (PDK) Template & Scaffolder**:
+   A dedicated template repository and CLI scaffolding command (`cairn-test plugin init <name>`) establishing the standard layout for external domain plugins. Implements boilerplate for the 5 domain-neutral contracts:
+   - `StepExecutor`: custom execution logic (e.g. database transactions, Kafka message delivery, Playwright browser actions).
+   - `StepObserver`: structured observation extractor (status code, metadata shape, payload shape).
+   - `Fingerprinter`: pre-execution fingerprinting and declared `touches` mapping.
+   - `AssertionType`: domain-specific assertion evaluators.
+   - `EvidenceCollector`: automated secrets/PII masking and artifact serialization.
+   Includes an isolated, assert-based self-check test suite verifying contract adherence without requiring `cairn_test.core` modifications.
+
 ## 14. API plugin (v1)
 
 - OpenAPI 3.0/3.1 ingestion; normalized per-operation hashing including `$ref`s.

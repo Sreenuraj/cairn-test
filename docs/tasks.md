@@ -170,6 +170,12 @@ T6.1 and T6.2 (core subset) start in parallel with Phase 1; the rest of the cata
 **Gate G7 (go/no-go)**
 - **GO**: 100% classification accuracy, zero false heals, zero masking suggestions, every tamper case rejected, 95.8% triage maintenance advantage over Newman, and second plugin proved with zero core changes.
 
+## Phase 8: Developer Experience & Ecosystem Enablement (v1.1 Roadmap)
+
+- [ ] **T8.1 Interactive tutorial CLI (`cairn-test tutorial`)**: Built-in command starting an ephemeral local reference target API in the background and interactively guiding a developer through authoring, recording, review diffing, OpenSSH approval signing, and strict replay with visual terminal feedback.
+- [ ] **T8.2 IDE YAML Schema Integration**: Add JSON Schema `$schema` pragmas (`# yaml-language-server: $schema=...`) to `init` and `draft` templates, alongside a `.vscode/settings.json` generator mapping `schemas/*.v1.json` for real-time validation and autocompletion in VS Code, JetBrains IDEs, and Cursor.
+- [ ] **T8.3 Plugin Developer Kit (PDK) Template & Scaffolder**: Create a standalone template repository and CLI command (`cairn-test plugin init <name>`) implementing the 5 domain-neutral contracts (`StepExecutor`, `StepObserver`, `Fingerprinter`, `AssertionType`, `EvidenceCollector`) with an assert-based self-check test suite.
+
 ## Notes for implementation
 
 - Build the decision table (T0.4) and diff fixtures (T0.5) first; they are the test oracles.
