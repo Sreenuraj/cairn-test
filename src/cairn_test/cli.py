@@ -90,6 +90,37 @@ def run_command(args: argparse.Namespace) -> int:
             print(f"No test definitions found in {tests_dir}")
         return EXIT_PASS
 
+    if getattr(args, "changed", False):
+        old_spec_arg = None
+        new_spec_arg = None
+        if getattr(args, "spec_diff", None):
+            old_spec_arg = args.spec_diff[0]
+            new_spec_arg = args.spec_diff[1]
+        else:
+            old_spec_arg = args.old_spec or config.spec
+            new_spec_arg = args.new_spec
+        if not old_spec_arg or not new_spec_arg or not Path(old_spec_arg).is_file() or not Path(new_spec_arg).is_file():
+            print("Error: --changed requires --spec-diff OLD NEW or --old-spec and --new-spec")
+            return EXIT_CLI_ERROR
+
+        with open(old_spec_arg, "r", encoding="utf-8") as f:
+            old_spec = yaml.safe_load(f) or {}
+        with open(new_spec_arg, "r", encoding="utf-8") as f:
+            new_spec = yaml.safe_load(f) or {}
+
+        from cairn_test.core.healing import ImpactAnalyzer
+        from cairn_test.plugins.api.spec_diff import SpecDiffClassifier
+        analyzer = ImpactAnalyzer(SpecDiffClassifier())
+        affected = analyzer.find_affected_tests(discovered_tests, old_spec, new_spec)
+        affected_ids = {a["test_id"] for a in affected}
+        discovered_tests = [t for t in discovered_tests if t["id"] in affected_ids]
+        if not discovered_tests:
+            if args.json:
+                print(json.dumps({"run_id": "none", "outcome": "PASS", "summary": {"total": 0, "passed": 0, "failed": 0, "drifted": 0, "errored": 0, "skipped": 0}, "tests": []}))
+            else:
+                print("No tests affected by spec diff.")
+            return EXIT_PASS
+
     # Load recorded traces if traces_dir exists
     traces_map: dict[str, dict[str, Any]] = {}
     if traces_dir.is_dir():
@@ -447,10 +478,9 @@ def approve_command(args: argparse.Namespace) -> int:
     sig_file = appr_dir / f"{test_id}.approval.yaml.sig"
     sig_file.write_text(sig_text, encoding="utf-8")
 
-    # Clean up proposal file if it existed
-    prop_file = repo_root / "proposals" / f"{test_id}.proposal.yaml"
-    prop_file.unlink(missing_ok=True)
-    prop_trace.unlink(missing_ok=True)
+    # Clean up proposal files if they existed
+    for prop_f in (repo_root / "proposals").glob(f"{test_id}.*"):
+        prop_f.unlink(missing_ok=True)
 
     print(f"Successfully approved '{test_id}' -> {appr_file}")
     return EXIT_PASS
@@ -495,6 +525,170 @@ def verify_command(args: argparse.Namespace) -> int:
 
     return EXIT_PASS if all_valid else EXIT_ERROR
 
+def impact_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.healing import ImpactAnalyzer
+    from cairn_test.plugins.api.spec_diff import SpecDiffClassifier
+
+    repo_root = Path(".")
+    config = Config.load()
+    if getattr(args, "spec_diff", None):
+        old_spec_path = Path(args.spec_diff[0])
+        new_spec_path = Path(args.spec_diff[1])
+    else:
+        old_spec_path = Path(args.old_spec or config.spec or "openapi.yaml")
+        new_spec_path = Path(args.new_spec) if args.new_spec else Path("")
+
+    if not old_spec_path.is_file():
+        print(f"Error: Old spec not found at {old_spec_path}")
+        return EXIT_CLI_ERROR
+    if not new_spec_path.is_file():
+        print(f"Error: New spec not found at {new_spec_path}")
+        return EXIT_CLI_ERROR
+
+    with open(old_spec_path, "r", encoding="utf-8") as f:
+        old_spec = yaml.safe_load(f) or {}
+    with open(new_spec_path, "r", encoding="utf-8") as f:
+        new_spec = yaml.safe_load(f) or {}
+
+    tests_dir = Path(args.tests_dir or "tests")
+    discovered = discover_tests(tests_dir)
+
+    analyzer = ImpactAnalyzer(SpecDiffClassifier())
+    affected = analyzer.find_affected_tests(discovered, old_spec, new_spec)
+
+    if args.json:
+        out = [
+            {
+                "test_id": a["test_id"],
+                "touched_operations": a["touched_operations"],
+                "changes": [
+                    {"rule": c.rule_id, "kind": c.kind.value, "mechanism": c.mechanism.value, "detail": c.detail}
+                    for c in a["changes"]
+                ],
+            }
+            for a in affected
+        ]
+        print(json.dumps(out, indent=2))
+    else:
+        print(f"\ncairn-test impact: {len(affected)} of {len(discovered)} tests affected")
+        print("=" * 60)
+        for a in affected:
+            print(f"AFFECTED {a['test_id']} (ops: {', '.join(a['touched_operations'])})")
+            for c in a["changes"]:
+                print(f"   -> [{c.kind.value.upper()}] {c.detail} ({c.mechanism.value})")
+        print("=" * 60)
+
+    return EXIT_PASS
+
+def heal_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.healing import HealEngine, ImpactAnalyzer
+    from cairn_test.plugins.api.spec_diff import SpecDiffClassifier
+
+    repo_root = Path(".")
+    config = Config.load()
+    if getattr(args, "spec_diff", None):
+        old_spec_path = Path(args.spec_diff[0])
+        new_spec_path = Path(args.spec_diff[1])
+    else:
+        old_spec_path = Path(args.old_spec or config.spec or "openapi.yaml")
+        new_spec_path = Path(args.new_spec) if args.new_spec else Path("")
+
+    if not old_spec_path.is_file() or not new_spec_path.is_file():
+        print("Error: Specs required for healing (--spec-diff OLD NEW or --old-spec, --new-spec)")
+        return EXIT_CLI_ERROR
+
+    with open(old_spec_path, "r", encoding="utf-8") as f:
+        old_spec = yaml.safe_load(f) or {}
+    with open(new_spec_path, "r", encoding="utf-8") as f:
+        new_spec = yaml.safe_load(f) or {}
+
+    tests_dir = Path(args.tests_dir or "tests")
+    traces_dir = Path(args.traces_dir or "traces")
+    discovered = discover_tests(tests_dir)
+
+    analyzer = ImpactAnalyzer(SpecDiffClassifier())
+    affected = analyzer.find_affected_tests(discovered, old_spec, new_spec)
+
+    if args.id:
+        target_ids = set(args.id.split(","))
+        affected = [a for a in affected if a["test_id"] in target_ids]
+
+    healer = HealEngine()
+    proposals_count = 0
+    proposals_list: list[dict[str, Any]] = []
+
+    if not args.json:
+        print(f"\ncairn-test heal: evaluating {len(affected)} affected tests")
+        print("=" * 60)
+
+    for item in affected:
+        tid = item["test_id"]
+        t_def = item["test_def"]
+        tr_file = traces_dir / f"{tid}.trace.yaml"
+        if not tr_file.is_file():
+            continue
+        tr_data = load_trace(tr_file)
+
+        for change in item["changes"]:
+            # 1. Healable changes
+            if change.mechanism.value == "heal":
+                p = healer.generate_heal_proposal(tid, t_def, tr_data, change, repo_root)
+                if p:
+                    if not args.json:
+                        print(f"HEAL PROPOSAL: '{tid}' -> {change.detail}")
+                    proposals_count += 1
+                    proposals_list.append(p)
+            # 2. Value request
+            elif change.mechanism.value == "value-request":
+                p = healer.generate_value_request(tid, change, repo_root)
+                if p:
+                    if not args.json:
+                        print(f"VALUE REQUEST: '{tid}' -> {change.detail}")
+                    proposals_count += 1
+                    proposals_list.append(p)
+            # 3. Expectation change suggestion
+            elif change.mechanism.value == "expectation-change":
+                p = healer.generate_expectation_change_suggestion(
+                    tid, t_def, change.old_value or "", change.candidates, repo_root
+                )
+                if p:
+                    if not args.json:
+                        print(f"EXPECTATION SUGGESTION: '{tid}' -> {p['reason']}")
+                    proposals_count += 1
+                    proposals_list.append(p)
+
+    if args.json:
+        print(json.dumps({"proposals_created": proposals_count, "proposals": proposals_list}, indent=2))
+    else:
+        print("=" * 60)
+        print(f"Generated {proposals_count} inert proposals in proposals/")
+    return EXIT_PASS
+
+def accept_observations_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.healing import accept_observations_batch
+
+    repo_root = Path(".")
+    props_dir = repo_root / "proposals"
+    traces_dir = Path(args.traces_dir or "traces")
+
+    # Look for proposal traces with observation-update kind
+    observed_map = {}
+    recorded_map = {}
+
+    for p in props_dir.glob("*.trace.yaml"):
+        test_id = p.name.replace(".trace.yaml", "")
+        rec_p = traces_dir / f"{test_id}.trace.yaml"
+        if rec_p.is_file():
+            observed_map[test_id] = load_trace(p)
+            recorded_map[test_id] = load_trace(rec_p)
+
+    batch = accept_observations_batch(repo_root, observed_map, recorded_map)
+    if args.json:
+        print(json.dumps({"proposals_created": len(batch), "paths": [str(p) for p in batch]}, indent=2))
+    else:
+        print(f"Created {len(batch)} observation acceptance proposals in proposals/")
+    return EXIT_PASS
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="cairn-test",
@@ -521,6 +715,10 @@ def main() -> None:
     run_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
     run_parser.add_argument("--traces-dir", type=str, default="traces", help="Directory containing trace files")
     run_parser.add_argument("--include-quarantined", action="store_true", help="Execute quarantined tests")
+    run_parser.add_argument("--changed", action="store_true", help="Run only tests affected by spec diff")
+    run_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
+    run_parser.add_argument("--old-spec", type=str, help="Old OpenAPI spec path")
+    run_parser.add_argument("--new-spec", type=str, help="New OpenAPI spec path")
 
     # record command
     rec_parser = subparsers.add_parser("record", help="Record traces for tests as inert proposals")
@@ -552,6 +750,29 @@ def main() -> None:
     ver_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
     ver_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
+    # impact command
+    impact_parser = subparsers.add_parser("impact", help="Impact analysis on tests touching modified spec operations")
+    impact_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
+    impact_parser.add_argument("--old-spec", type=str, help="Path to old OpenAPI spec")
+    impact_parser.add_argument("--new-spec", type=str, help="Path to new OpenAPI spec")
+    impact_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
+    impact_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # heal command
+    heal_parser = subparsers.add_parser("heal", help="Generate deterministic heal proposals for breaking spec changes")
+    heal_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
+    heal_parser.add_argument("--old-spec", type=str, help="Path to old OpenAPI spec")
+    heal_parser.add_argument("--new-spec", type=str, help="Path to new OpenAPI spec")
+    heal_parser.add_argument("--id", type=str, help="Specific test ID(s) to heal (comma-separated)")
+    heal_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
+    heal_parser.add_argument("--traces-dir", type=str, default="traces", help="Directory containing trace files")
+    heal_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # accept-observations command
+    accept_obs_parser = subparsers.add_parser("accept-observations", help="Create batch proposals for additive observation diffs")
+    accept_obs_parser.add_argument("--traces-dir", type=str, default="traces", help="Directory containing recorded traces")
+    accept_obs_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
     # explain command
     explain_parser = subparsers.add_parser("explain", help="Explain test outcome from stored artifacts")
     explain_parser.add_argument("run_id", type=str, help="Run ID")
@@ -576,6 +797,15 @@ def main() -> None:
         sys.exit(code)
     elif parsed.command == "verify":
         code = verify_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "impact":
+        code = impact_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "heal":
+        code = heal_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "accept-observations":
+        code = accept_observations_command(parsed)
         sys.exit(code)
     elif parsed.command == "explain":
         code = explain_command(parsed)

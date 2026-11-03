@@ -65,10 +65,18 @@ expect:
     range: { min: 1, max: 10 }
 """)
 
+        cairn_cmd = [sys.executable, "-m", "cairn_test.cli"]
+        cairn_env = {
+            **os.environ,
+            "PYTHONPATH": f"{REPO_ROOT}/src:{REPO_ROOT}",
+            "CAIRN_ALLOWED_SIGNERS": f"tester {pub_key}",
+        }
+
         # 4. cairn-test record (writes to proposals/)
         res_rec = subprocess.run(
-            ["uv", "run", "cairn-test", "record", "--id", "get-products", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
+            cairn_cmd + ["record", "--id", "get-products", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True, check=True
         )
         assert "Recorded proposal for 'get-products'" in res_rec.stdout
@@ -78,8 +86,9 @@ expect:
 
         # 5. cairn-test review
         res_rev = subprocess.run(
-            ["uv", "run", "cairn-test", "review", "--tests-dir", str(root / "tests")],
+            cairn_cmd + ["review", "--tests-dir", str(root / "tests")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True, check=True
         )
         assert "[PROPOSAL PENDING]" in res_rev.stdout
@@ -87,8 +96,9 @@ expect:
 
         # 6. cairn-test verify (fails before approval: unapproved)
         res_ver_pre = subprocess.run(
-            ["uv", "run", "cairn-test", "verify", "--tests-dir", str(root / "tests")],
+            cairn_cmd + ["verify", "--tests-dir", str(root / "tests")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True
         )
         assert res_ver_pre.returncode != 0
@@ -96,8 +106,9 @@ expect:
 
         # 7. cairn-test approve (promotes proposal, signs with OpenSSH)
         res_appr = subprocess.run(
-            ["uv", "run", "cairn-test", "approve", "get-products", "--key", str(key_path), "--identity", "tester"],
+            cairn_cmd + ["approve", "get-products", "--key", str(key_path), "--identity", "tester"],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True, check=True
         )
         assert "Successfully approved 'get-products'" in res_appr.stdout
@@ -108,16 +119,18 @@ expect:
 
         # 8. cairn-test verify (now VALID)
         res_ver_post = subprocess.run(
-            ["uv", "run", "cairn-test", "verify", "--tests-dir", str(root / "tests")],
+            cairn_cmd + ["verify", "--tests-dir", str(root / "tests")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True, check=True
         )
         assert "VALID    get-products" in res_ver_post.stdout
 
         # 9. cairn-test run --strict (succeeds)
         res_run = subprocess.run(
-            ["uv", "run", "cairn-test", "run", "--strict", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
+            cairn_cmd + ["run", "--strict", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True, check=True
         )
         assert "PASS    get-products" in res_run.stdout
@@ -126,8 +139,9 @@ expect:
         orig_test_content = test_file.read_text()
         test_file.write_text(orig_test_content.replace("status: 200", "status: 201"))
         res_run_tampered = subprocess.run(
-            ["uv", "run", "cairn-test", "run", "--strict", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
+            cairn_cmd + ["run", "--strict", "--tests-dir", str(root / "tests"), "--traces-dir", str(root / "traces")],
             cwd=str(root),
+            env=cairn_env,
             capture_output=True, text=True
         )
         assert res_run_tampered.returncode != 0

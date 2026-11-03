@@ -120,12 +120,12 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 4: Healing and impact
 
-- [ ] **T4.1 Request-side spec-diff classifier**, passing the T0.5 fixtures. (FR-A7)
-- [ ] **T4.2 Impact map**: `impact --spec-diff` and `run --changed`; optional declared `touches` mappings *(C)*. (FR-S1, FR-S2)
-- [ ] **T4.3 Healer**: heal proposals for healable fields only, with a dry run showing which expectations still hold. (FR-R5)
-- [ ] **T4.4 Value requests and expectation-change requests**, including unambiguous rename and move suggestions (JSONPath-only rewrite) and operationId-rename heals. (FR-R6, FR-R6a, FR-R6b)
-- [ ] **T4.5 Heal-limit enforcement test**: an automated test tries to make the healer change an expectation, data value, or arg, or heal a FAIL; the engine refuses each attempt. (FR-R7)
-- [ ] **T4.6 `accept-observations`** for additive diffs. (FR-C16)
+- [x] **T4.1 Request-side spec-diff classifier**, passing the T0.5 fixtures. (FR-A7)
+- [x] **T4.2 Impact map**: `impact --spec-diff` and `run --changed`; optional declared `touches` mappings *(C)*. (FR-S1, FR-S2)
+- [x] **T4.3 Healer**: heal proposals for healable fields only, with a dry run showing which expectations still hold. (FR-R5)
+- [x] **T4.4 Value requests and expectation-change requests**, including unambiguous rename and move suggestions (JSONPath-only rewrite) and operationId-rename heals. (FR-R6, FR-R6a, FR-R6b)
+- [x] **T4.5 Heal-limit enforcement test**: an automated test tries to make the healer change an expectation, data value, or arg, or heal a FAIL; the engine refuses each attempt. (FR-R7)
+- [x] **T4.6 `accept-observations`** for additive diffs. (FR-C16)
 - [ ] **T4.7 E2 run**: freeze all suites under the signed tag `suites-frozen`, then apply seeded changes by script; measure triage and fix time for cairn-test and Newman; apply the E2 kill criteria. (FR-B9)
 
 **Gate G4 / Checkpoint E2**: for every seeded contract change, `impact` selects exactly the affected tests, and repair produces the pre-registered mechanism (heal, suggestion, value request, request without a suggestion, or none). Zero false heals, zero masking suggestions, and the triage threshold is met.
