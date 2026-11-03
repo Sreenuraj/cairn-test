@@ -43,3 +43,4 @@ def extract_jsonpath(data: Any, path: str) -> Any:
         else:
             return None
     return curr
+

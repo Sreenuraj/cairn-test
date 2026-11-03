@@ -38,7 +38,8 @@ class Planner:
         hermetic = test_def.get("hermetic", True)
 
         # 1. Quarantine check
-        quarantine = test_def.get("quarantine")
+        tags = set(test_def.get("tags", []))
+        quarantine = test_def.get("quarantine") or ("quarantine" in tags)
         if quarantine and not self.include_quarantined:
             reason = "quarantined"
             if isinstance(quarantine, dict) and "reason" in quarantine:

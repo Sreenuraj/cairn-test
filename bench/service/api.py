@@ -6,7 +6,7 @@ Seeded changes can be activated per-request via the header 'X-Seeded-Change' or 
 """
 
 from __future__ import annotations
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import re
 from typing import Any
@@ -269,8 +269,8 @@ class StoreApiHandler(BaseHTTPRequestHandler):
 
         self.send_json(404, {"error": "Not Found"})
 
-def start_reference_server(port: int = 0) -> tuple[HTTPServer, str]:
-    server = HTTPServer(("127.0.0.1", port), StoreApiHandler)
+def start_reference_server(port: int = 0) -> tuple[ThreadingHTTPServer, str]:
+    server = ThreadingHTTPServer(("127.0.0.1", port), StoreApiHandler)
     host, p = server.server_address
     url = f"http://{host}:{p}"
     return server, url

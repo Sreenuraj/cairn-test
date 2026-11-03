@@ -368,10 +368,18 @@ class Scheduler:
         self,
         planned_items: list[PlanItem],
         traces: dict[str, dict[str, Any]] | None = None,
-        verification_status: str = "valid",
+        verification_status: str | dict[str, Any] = "valid",
     ) -> list[TestVerdict]:
         traces_map = traces or {}
         
+        def get_v_status(tid: str) -> tuple[str, str | None]:
+            if isinstance(verification_status, dict):
+                val = verification_status.get(tid, "valid")
+                if isinstance(val, tuple):
+                    return val[0], val[1]
+                return val, val if val != "valid" else None
+            return verification_status, None
+
         # Partition into hermetic (parallel) and non-hermetic (serial)
         hermetic_items: list[PlanItem] = []
         serial_items: list[PlanItem] = []
@@ -382,7 +390,7 @@ class Scheduler:
             else:
                 serial_items.append(item)
 
-        verdicts: list[TestVerdict] = []
+        results_by_id: dict[str, TestVerdict] = {}
 
         # 1. Execute hermetic tests with worker pool
         if hermetic_items:
@@ -398,16 +406,19 @@ class Scheduler:
                         store=self.store,
                         default_timeout_ms=self.default_timeout_ms,
                     )
+                    v_stat, v_reas = get_v_status(item.test_id)
                     fut = executor.submit(
                         worker.execute_test,
                         item,
                         recorded_trace=traces_map.get(item.test_id),
-                        verification_status=verification_status,
+                        verification_status=v_stat,
+                        verification_reason=v_reas,
                     )
                     futures[fut] = item
 
                 for fut in as_completed(futures):
-                    verdicts.append(fut.result())
+                    item = futures[fut]
+                    results_by_id[item.test_id] = fut.result()
 
         # 2. Execute non-hermetic tests strictly serially
         serial_worker = Worker(
@@ -420,11 +431,14 @@ class Scheduler:
             default_timeout_ms=self.default_timeout_ms,
         )
         for item in serial_items:
+            v_stat, v_reas = get_v_status(item.test_id)
             verdict = serial_worker.execute_test(
                 item,
                 recorded_trace=traces_map.get(item.test_id),
-                verification_status=verification_status,
+                verification_status=v_stat,
+                verification_reason=v_reas,
             )
-            verdicts.append(verdict)
+            results_by_id[item.test_id] = verdict
 
-        return verdicts
+        # Return verdicts strictly in planned order
+        return [results_by_id[item.test_id] for item in planned_items]

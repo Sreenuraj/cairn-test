@@ -120,3 +120,4 @@ def test_openapi_ingestion_and_ref_resolution():
 
 if __name__ == "__main__":
     test_openapi_ingestion_and_ref_resolution()
+

@@ -91,7 +91,8 @@ def validate_doc(doc: dict[str, Any], expected_kind: str | None = None) -> None:
         raise SchemaValidationError("Missing required 'schema' identifier in document.")
 
     if expected_kind:
-        supported = SUPPORTED_KINDS.get(expected_kind, [])
+        k = expected_kind.split(".")[0]
+        supported = SUPPORTED_KINDS.get(k, SUPPORTED_KINDS.get(expected_kind, []))
         if schema_id not in supported:
             raise SchemaVersionError(expected_kind, schema_id, supported)
 
@@ -117,6 +118,19 @@ def _read_file_or_data(target: Path | str | dict[str, Any]) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise SchemaValidationError(f"Expected YAML object in {p}, got {type(data).__name__}")
     return data
+
+def load_yaml(target: Path | str) -> dict[str, Any]:
+    """Helper to safely load arbitrary YAML file as dict."""
+    p = Path(target)
+    if not p.is_file():
+        raise FileNotFoundError(f"File not found: {p}")
+    with open(p, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    return data if isinstance(data, dict) else {}
+
+def validate_document(doc: dict[str, Any], expected_kind: str | None = None) -> None:
+    """Alias for validate_doc."""
+    validate_doc(doc, expected_kind=expected_kind)
 
 def load_test(target: Path | str | dict[str, Any]) -> dict[str, Any]:
     doc = _read_file_or_data(target)

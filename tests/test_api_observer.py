@@ -62,3 +62,4 @@ def test_t05_response_diff_fixtures():
 
 if __name__ == "__main__":
     test_t05_response_diff_fixtures()
+

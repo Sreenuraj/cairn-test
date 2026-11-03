@@ -192,3 +192,4 @@ class ApiObserver:
                         detail=f"Type changed from {rec} to {obs}",
                     )
                 )
+

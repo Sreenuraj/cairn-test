@@ -90,3 +90,4 @@ if __name__ == "__main__":
     test_jsonpath_assertion_operators()
     test_state_assertion()
     print("All T2.4 assertion types tests PASSED!")
+

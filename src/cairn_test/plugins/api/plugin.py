@@ -57,3 +57,4 @@ def register_api_plugin(
     registry.register_assertion("jsonpath", JsonPathAssertion())
     registry.register_assertion("schema", SchemaFromSpecAssertion(spec=spec))
     registry.register_assertion("state", StateAssertion(executor=http_exec))
+

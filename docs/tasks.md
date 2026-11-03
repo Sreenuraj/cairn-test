@@ -107,14 +107,14 @@ If a checkpoint fails, write down why before changing the design.
 
 ## Phase 3: Record, review, and approval
 
-- [ ] **T3.1 `init --spec`**: project scaffold and spec import. (FR-R1)
-- [ ] **T3.2 `record`**: traces written as proposals, with a plain-language rendering of each step. (FR-R2)
-- [ ] **T3.3 `review`**: proposals and approved-file diffs with labels. (FR-R3)
-- [ ] **T3.4 `approve`**: hash coverage (including project-local plugins), a summary shown before signing, key type recorded, SSH signing per T0.6. (FR-R4, FR-R8, FR-V6)
-- [ ] **T3.5 Strict mode and `verify`**: approval verification, trust root from `CAIRN_ALLOWED_SIGNERS` or user config, no bypass, strict guards (missing trace, environment mismatch). (FR-V1, FR-V2, FR-V3, FR-V7, FR-C20, FR-C9)
-- [ ] **T3.6 Tamper suite**: every case in FR-V5 as an automated test. Overrun rule: see E2 kill criteria. (FR-V5)
-- [ ] **T3.6b Reference CI workflow** *(S)*: pinned engine, trust root from a CI variable, `verify` then `run --strict`, documented repository ruleset and agent token scope. (FR-V8)
-- [ ] **T3.7 Quarantine as an approved edit** *(S)*. (FR-C19)
+- [x] **T3.1 `init --spec`**: project scaffold and spec import. (FR-R1)
+- [x] **T3.2 `record`**: traces written as proposals, with a plain-language rendering of each step. (FR-R2)
+- [x] **T3.3 `review`**: proposals and approved-file diffs with labels. (FR-R3)
+- [x] **T3.4 `approve`**: hash coverage (including project-local plugins), a summary shown before signing, key type recorded, SSH signing per T0.6. (FR-R4, FR-R8, FR-V6)
+- [x] **T3.5 Strict mode and `verify`**: approval verification, trust root from `CAIRN_ALLOWED_SIGNERS` or user config, no bypass, strict guards (missing trace, environment mismatch). (FR-V1, FR-V2, FR-V3, FR-V7, FR-C20, FR-C9)
+- [x] **T3.6 Tamper suite**: every case in FR-V5 as an automated test. Overrun rule: see E2 kill criteria. (FR-V5)
+- [x] **T3.6b Reference CI workflow** *(S)*: pinned engine, trust root from a CI variable, `verify` then `run --strict`, documented repository ruleset and agent token scope. (FR-V8)
+- [x] **T3.7 Quarantine as an approved edit** *(S)*. (FR-C19)
 
 **Gate G3**: starting from a spec, you can go init, write YAML tests, record, review, approve, then strict run, with no test code. Every tamper case is rejected.
 

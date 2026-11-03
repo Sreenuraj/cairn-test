@@ -159,3 +159,4 @@ class OpenAPISpec:
         if operation_id not in self.operations_by_id:
             raise KeyError(f"Operation ID '{operation_id}' not found in OpenAPI spec.")
         return self.operations_by_id[operation_id]
+
