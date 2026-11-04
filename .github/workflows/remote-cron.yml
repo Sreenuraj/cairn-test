@@ -1,0 +1,90 @@
+name: Scheduled Remote Synthetic Automation (T8.4)
+
+on:
+  schedule:
+    # Run every 15 minutes against remote staging / canary target
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: "Target Environment Profile"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - prod_canary
+
+permissions:
+  contents: read
+
+jobs:
+  remote-canary:
+    name: Headless Remote Replay & Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Test Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12 & uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+
+      - name: Install cairn-test
+        run: uv sync
+
+      # Step 1: Zero-secret verification against committed public trust root
+      - name: Verify Cryptographic Provenance
+        run: uv run cairn-test verify --strict
+        env:
+          CAIRN_ALLOWED_SIGNERS: .cairn/allowed_signers
+
+      # Step 2: Headless Replay against remote target
+      - name: Execute Headless Remote Tests
+        id: run_suite
+        continue-on-error: true
+        run: |
+          ENV_NAME="${{ inputs.target_env || 'staging' }}"
+          uv run cairn-test run --strict \
+            --env "$ENV_NAME" \
+            --concurrency 4 \
+            --junit results.xml \
+            --html report.html
+          echo "EXIT_CODE=$?" >> $GITHUB_ENV
+
+      # Step 3: Deterministic POSIX Exit Code Evaluation
+      - name: Evaluate Exit Code
+        run: |
+          case "$EXIT_CODE" in
+            0)
+              echo "✅ All tests PASSED cleanly on remote target."
+              exit 0
+              ;;
+            1)
+              echo "❌ Behavioral FAIL detected on remote target. Triggering on-call alert!"
+              exit 1
+              ;;
+            2)
+              echo "⚠️ Contract DRIFT detected on remote target. Emitting non-fatal notification."
+              exit 0
+              ;;
+            3)
+              echo "🚨 Cryptographic verification or ERROR detected. Aborting."
+              exit 3
+              ;;
+            *)
+              echo "Unknown exit code: $EXIT_CODE"
+              exit "$EXIT_CODE"
+              ;;
+          esac
+
+      - name: Upload Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: remote-automation-reports
+          path: |
+            results.xml
+            report.html

@@ -924,6 +924,30 @@ def draft_command(args: argparse.Namespace) -> int:
         print("=" * 60)
     return EXIT_PASS
 
+def plugin_command(args: argparse.Namespace) -> int:
+    from cairn_test.core.pdk import scaffold_plugin
+    action = getattr(args, "plugin_action", None)
+    if action == "init":
+        name = args.name
+        target_dir = Path(args.dir) if getattr(args, "dir", None) else None
+        res = scaffold_plugin(name, target_dir)
+        if getattr(args, "json", False):
+            print(json.dumps(res, indent=2))
+        else:
+            print(f"Scaffolded plugin '{res['plugin']}' in {res['directory']}")
+            for f in res["files"]:
+                print(f"  + {f}")
+            print(f"\nRun verification with: python {res['directory']}/test_{res['plugin']}_plugin.py")
+        return EXIT_PASS
+    print("Unknown plugin action. Use 'cairn-test plugin init <name>'", file=sys.stderr)
+    return EXIT_CLI_ERROR
+
+def tutorial_command(args: argparse.Namespace) -> int:
+    from cairn_test.tutorial import run_tutorial
+    interactive = not getattr(args, "non_interactive", False)
+    custom_dir = Path(args.dir) if getattr(args, "dir", None) else None
+    return run_tutorial(interactive=interactive, custom_dir=custom_dir)
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="cairn-test",
@@ -1043,6 +1067,19 @@ def main() -> None:
     status_parser = subparsers.add_parser("status", help="Display test suite health, flakiness, and drift rate")
     status_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
+    # plugin command (PDK)
+    plugin_parser = subparsers.add_parser("plugin", help="Plugin Developer Kit (PDK) utilities")
+    plugin_sub = plugin_parser.add_subparsers(dest="plugin_action", required=True)
+    plugin_init = plugin_sub.add_parser("init", help="Scaffold a new domain-neutral plugin")
+    plugin_init.add_argument("name", type=str, help="Name of the plugin (e.g. grpc, kafka, sql)")
+    plugin_init.add_argument("--dir", type=str, help="Target directory for scaffolded plugin")
+    plugin_init.add_argument("--json", action="store_true", help="Output machine-readable JSON")
+
+    # tutorial command (T8.1)
+    tutorial_parser = subparsers.add_parser("tutorial", help="Interactive onboarding tutorial")
+    tutorial_parser.add_argument("--non-interactive", action="store_true", help="Run continuously without user prompts")
+    tutorial_parser.add_argument("--dir", type=str, help="Directory for tutorial workspace")
+
     parsed = parser.parse_args()
     if parsed.command == "init":
         code = init_command(parsed)
@@ -1088,6 +1125,12 @@ def main() -> None:
         sys.exit(code)
     elif parsed.command == "status":
         code = status_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "plugin":
+        code = plugin_command(parsed)
+        sys.exit(code)
+    elif parsed.command == "tutorial":
+        code = tutorial_command(parsed)
         sys.exit(code)
 
 if __name__ == "__main__":

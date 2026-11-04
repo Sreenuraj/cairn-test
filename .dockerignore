@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.cairn-test
+reports/
+proposals/
+dist/
+build/
+*.egg-info
+.DS_Store

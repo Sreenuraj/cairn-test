@@ -70,6 +70,7 @@ class SpecDrafter:
             validate_document(proposal, "proposal.v1")
             p_file = props_dir / f"{happy_test_id}.proposal.yaml"
             with open(p_file, "w", encoding="utf-8") as f:
+                f.write("# yaml-language-server: $schema=../schemas/proposal.v1.json\n")
                 yaml.safe_dump(proposal, f, sort_keys=False)
             created_paths.append(p_file)
 

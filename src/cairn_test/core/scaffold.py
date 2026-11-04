@@ -13,10 +13,13 @@ Initializes standard project layout:
 """
 
 from __future__ import annotations
+import json
 from pathlib import Path
 import shutil
 from typing import Any
 import yaml
+
+from cairn_test.core.schemas import get_schemas_dir
 
 DEFAULT_CONFIG_CONTENT = """# cairn-test project configuration
 version: "1.0"
@@ -60,6 +63,29 @@ alice:
   password: "password123"
 """
 
+DEFAULT_SAMPLE_TEST = """# yaml-language-server: $schema=../schemas/test.v1.json
+schema: "cairn-test.test/v1"
+id: "sample-health-check"
+tags:
+  - "smoke"
+steps:
+  - id: "check"
+    op: "getHealth"
+    args: {}
+expect:
+  - after: "check"
+    status: 200
+"""
+
+VSCODE_SETTINGS = {
+    "yaml.schemas": {
+        "./schemas/test.v1.json": ["tests/**/*.test.yaml", "tests/*.test.yaml"],
+        "./schemas/trace.v1.json": ["traces/**/*.trace.yaml", "traces/*.trace.yaml"],
+        "./schemas/approval.v1.json": ["approvals/**/*.approval.yaml", "approvals/*.approval.yaml"],
+        "./schemas/proposal.v1.json": ["proposals/**/*.proposal.yaml", "proposals/*.proposal.yaml"],
+    }
+}
+
 def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, Any]:
     """Scaffold standard cairn-test project directory layout."""
     target_dir = Path(target_dir).resolve()
@@ -75,10 +101,25 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
         target_dir / "data",
         target_dir / "envs",
         target_dir / "plugins",
+        target_dir / "schemas",
+        target_dir / ".vscode",
         target_dir / ".cairn-test",
     ]
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
+
+    # Copy schemas if available
+    try:
+        src_schemas = get_schemas_dir()
+        if src_schemas.is_dir() and src_schemas != target_dir / "schemas":
+            shutil.copytree(src_schemas, target_dir / "schemas", dirs_exist_ok=True)
+    except Exception:
+        pass
+
+    # Write .vscode/settings.json
+    vscode_settings_file = target_dir / ".vscode" / "settings.json"
+    if not vscode_settings_file.exists():
+        vscode_settings_file.write_text(json.dumps(VSCODE_SETTINGS, indent=2) + "\n", encoding="utf-8")
 
     # Handle spec file
     final_spec_path = "openapi.yaml"
@@ -110,6 +151,11 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
     cust_data = target_dir / "data" / "customers.yaml"
     if not cust_data.exists():
         cust_data.write_text(DEFAULT_DATA_CUSTOMER, encoding="utf-8")
+
+    # Write default sample test template with schema pragma
+    sample_test = target_dir / "tests" / "sample.test.yaml.example"
+    if not sample_test.exists():
+        sample_test.write_text(DEFAULT_SAMPLE_TEST, encoding="utf-8")
 
     return {
         "status": "initialized",
