@@ -542,19 +542,47 @@ def review_command(args: argparse.Namespace) -> int:
 
 def approve_command(args: argparse.Namespace) -> int:
     repo_root = Path(".")
-    test_id = getattr(args, "id_flag", None) or args.id
+    raw_target = getattr(args, "id_flag", None) or args.id
+    test_id = raw_target
     test_file = repo_root / "tests" / f"{test_id}.test.yaml"
+
     if not test_file.is_file():
-        # Check if test_id matches a draft proposal in proposals/
+        # 1. Check if raw_target is a direct file path (e.g. tests/sample.test.yaml)
+        target_path = Path(raw_target)
+        if target_path.is_file():
+            try:
+                td = load_yaml(target_path)
+                if isinstance(td, dict) and "id" in td:
+                    test_file = target_path
+                    test_id = td["id"]
+            except Exception:
+                pass
+        else:
+            # 2. Check all test files in tests/ to find matching test ID
+            for tf in sorted((repo_root / "tests").glob("*.test.yaml")):
+                try:
+                    td = load_yaml(tf)
+                    if isinstance(td, dict) and td.get("id") == test_id:
+                        test_file = tf
+                        break
+                except Exception:
+                    pass
+
+    if not test_file.is_file():
+        # 3. Check if test_id matches a draft proposal in proposals/
         prop_file = repo_root / "proposals" / f"{test_id}.proposal.yaml"
         if prop_file.is_file():
             from cairn_test.core.draft import promote_drafts
-            promote_drafts(repo_root, target_ids=[test_id])
+            promoted = promote_drafts(repo_root, target_ids=[test_id])
+            if promoted:
+                test_file = promoted[0]
         if not test_file.is_file():
             print(f"Error: Test definition not found for '{test_id}' at {test_file}")
             return EXIT_CLI_ERROR
 
     test_def = load_yaml(test_file)
+    if not test_id and isinstance(test_def, dict):
+        test_id = test_def.get("id", raw_target)
 
     # Check if a proposal trace exists, promote it to traces/<test_id>.trace.yaml
     prop_trace = repo_root / "proposals" / f"{test_id}.trace.yaml"
@@ -576,7 +604,7 @@ def approve_command(args: argparse.Namespace) -> int:
         labels = sorted(list(set(labels + extra)))
 
     # Compute coverage SHA-256 for all relevant files
-    covers = compute_covers(repo_root, test_id, test_def, trace_path=dest_trace)
+    covers = compute_covers(repo_root, test_id, test_def, test_path=test_file, trace_path=dest_trace)
 
     approver_name = args.identity or os.environ.get("USER", "human")
     key_path = args.key or os.environ.get("CAIRN_SIGNING_KEY") or str(Path.home() / ".ssh" / "id_ed25519")
@@ -676,30 +704,55 @@ def verify_command(args: argparse.Namespace) -> int:
 
     return EXIT_PASS if all_valid else EXIT_ERROR
 
+def _load_spec_pair(args: argparse.Namespace, repo_root: Path, config: Config) -> tuple[dict[str, Any] | None, dict[str, Any] | None, str | None]:
+    """Helper to resolve old and new specs from args (--spec-diff [1 or 2 files] or --old-spec/--new-spec)."""
+    if getattr(args, "spec_diff", None):
+        diff_args = args.spec_diff
+        if len(diff_args) >= 2:
+            old_p, new_p = Path(diff_args[0]), Path(diff_args[1])
+            if not old_p.is_file():
+                return None, None, f"Old spec not found at {old_p}"
+            if not new_p.is_file():
+                return None, None, f"New spec not found at {new_p}"
+            old_spec = yaml.safe_load(old_p.read_text(encoding="utf-8")) or {}
+            new_spec = yaml.safe_load(new_p.read_text(encoding="utf-8")) or {}
+            return old_spec, new_spec, None
+        elif len(diff_args) == 1:
+            new_p = Path(diff_args[0])
+            if not new_p.is_file():
+                return None, None, f"Spec file not found at {new_p}"
+            new_spec = yaml.safe_load(new_p.read_text(encoding="utf-8")) or {}
+            # Attempt to retrieve base spec from git show HEAD:<rel_path>
+            try:
+                rel = new_p.resolve().relative_to(repo_root.resolve())
+                res = subprocess.run(["git", "show", f"HEAD:{rel}"], capture_output=True, text=True, cwd=str(repo_root))
+                if res.returncode == 0 and res.stdout.strip():
+                    old_spec = yaml.safe_load(res.stdout) or {}
+                    return old_spec, new_spec, None
+            except Exception:
+                pass
+            return None, None, f"Could not retrieve base spec from git HEAD for '{new_p}'. Please specify both: --spec-diff <old_spec> <new_spec>"
+    else:
+        old_spec_path = Path(args.old_spec or config.spec or "openapi.yaml")
+        new_spec_path = Path(args.new_spec) if args.new_spec else Path("")
+        if not old_spec_path.is_file():
+            return None, None, f"Old spec not found at {old_spec_path}"
+        if not new_spec_path.is_file():
+            return None, None, f"New spec not found at {new_spec_path}"
+        old_spec = yaml.safe_load(old_spec_path.read_text(encoding="utf-8")) or {}
+        new_spec = yaml.safe_load(new_spec_path.read_text(encoding="utf-8")) or {}
+        return old_spec, new_spec, None
+
 def impact_command(args: argparse.Namespace) -> int:
     from cairn_test.core.healing import ImpactAnalyzer
     from cairn_test.plugins.api.spec_diff import SpecDiffClassifier
 
     repo_root = Path(".")
     config = Config.load()
-    if getattr(args, "spec_diff", None):
-        old_spec_path = Path(args.spec_diff[0])
-        new_spec_path = Path(args.spec_diff[1])
-    else:
-        old_spec_path = Path(args.old_spec or config.spec or "openapi.yaml")
-        new_spec_path = Path(args.new_spec) if args.new_spec else Path("")
-
-    if not old_spec_path.is_file():
-        print(f"Error: Old spec not found at {old_spec_path}")
+    old_spec, new_spec, err = _load_spec_pair(args, repo_root, config)
+    if err or old_spec is None or new_spec is None:
+        print(f"Error: {err or 'Specs required for impact analysis'}")
         return EXIT_CLI_ERROR
-    if not new_spec_path.is_file():
-        print(f"Error: New spec not found at {new_spec_path}")
-        return EXIT_CLI_ERROR
-
-    with open(old_spec_path, "r", encoding="utf-8") as f:
-        old_spec = yaml.safe_load(f) or {}
-    with open(new_spec_path, "r", encoding="utf-8") as f:
-        new_spec = yaml.safe_load(f) or {}
 
     tests_dir = Path(args.tests_dir or "tests")
     discovered = discover_tests(tests_dir)
@@ -737,21 +790,10 @@ def heal_command(args: argparse.Namespace) -> int:
 
     repo_root = Path(".")
     config = Config.load()
-    if getattr(args, "spec_diff", None):
-        old_spec_path = Path(args.spec_diff[0])
-        new_spec_path = Path(args.spec_diff[1])
-    else:
-        old_spec_path = Path(args.old_spec or config.spec or "openapi.yaml")
-        new_spec_path = Path(args.new_spec) if args.new_spec else Path("")
-
-    if not old_spec_path.is_file() or not new_spec_path.is_file():
-        print("Error: Specs required for healing (--spec-diff OLD NEW or --old-spec, --new-spec)")
+    old_spec, new_spec, err = _load_spec_pair(args, repo_root, config)
+    if err or old_spec is None or new_spec is None:
+        print(f"Error: {err or 'Specs required for healing (--spec-diff OLD NEW or --old-spec, --new-spec)'}")
         return EXIT_CLI_ERROR
-
-    with open(old_spec_path, "r", encoding="utf-8") as f:
-        old_spec = yaml.safe_load(f) or {}
-    with open(new_spec_path, "r", encoding="utf-8") as f:
-        new_spec = yaml.safe_load(f) or {}
 
     tests_dir = Path(args.tests_dir or "tests")
     traces_dir = Path(args.traces_dir or "traces")
@@ -1162,7 +1204,7 @@ def main() -> None:
 
     # impact command
     impact_parser = subparsers.add_parser("impact", help="Impact analysis on tests touching modified spec operations")
-    impact_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
+    impact_parser.add_argument("--spec-diff", nargs="+", metavar="SPEC", help="Path(s) to spec: [NEW] (diffed against git HEAD) or [OLD NEW]")
     impact_parser.add_argument("--old-spec", type=str, help="Path to old OpenAPI spec")
     impact_parser.add_argument("--new-spec", type=str, help="Path to new OpenAPI spec")
     impact_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
@@ -1170,7 +1212,7 @@ def main() -> None:
 
     # heal command
     heal_parser = subparsers.add_parser("heal", help="Generate deterministic heal proposals for breaking spec changes")
-    heal_parser.add_argument("--spec-diff", nargs=2, metavar=("OLD", "NEW"), help="Paths to old and new OpenAPI specs")
+    heal_parser.add_argument("--spec-diff", nargs="+", metavar="SPEC", help="Path(s) to spec: [NEW] (diffed against git HEAD) or [OLD NEW]")
     heal_parser.add_argument("--old-spec", type=str, help="Path to old OpenAPI spec")
     heal_parser.add_argument("--new-spec", type=str, help="Path to new OpenAPI spec")
     heal_parser.add_argument("--id", type=str, help="Specific test ID(s) to heal (comma-separated)")

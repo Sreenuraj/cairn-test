@@ -50,11 +50,12 @@ def compute_covers(
     repo_root: Path,
     test_id: str,
     test_def: dict[str, Any],
+    test_path: Path | None = None,
     trace_path: Path | None = None,
 ) -> dict[str, str]:
     """
     Computes SHA-256 digests for all files covered by an approval:
-    1. tests/<test_id>.test.yaml
+    1. tests/<test_id>.test.yaml (or test_path)
     2. traces/<test_id>.trace.yaml (or custom trace path)
     3. cairn-test.yaml (if present)
     4. Referenced data files in data:
@@ -63,7 +64,7 @@ def compute_covers(
     covers: dict[str, str] = {}
 
     # 1. Test definition
-    test_file = repo_root / "tests" / f"{test_id}.test.yaml"
+    test_file = test_path or (repo_root / "tests" / f"{test_id}.test.yaml")
     if test_file.is_file():
         rel = str(test_file.relative_to(repo_root))
         covers[rel] = compute_file_sha256(test_file)

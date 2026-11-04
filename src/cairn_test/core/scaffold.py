@@ -65,7 +65,7 @@ alice:
 
 DEFAULT_SAMPLE_TEST = """# yaml-language-server: $schema=../schemas/test.v1.json
 schema: "cairn-test.test/v1"
-id: "sample-health-check"
+id: "sample"
 tags:
   - "smoke"
 steps:
@@ -113,8 +113,8 @@ cairn-test record tests/sample.test.yaml
 # Inspect proposed changes
 cairn-test review
 
-# Sign approval with your SSH hardware key (locks LF SHA-256 hashes)
-cairn-test approve <test-id>
+# Sign approval with your SSH key (locks LF SHA-256 hashes)
+cairn-test approve sample  # or cairn-test approve <test-id>
 ```
 
 ### 5. Run the Suite
