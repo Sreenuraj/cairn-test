@@ -458,6 +458,24 @@ To minimize onboarding friction as the framework evolves beyond v1, three develo
 4. **Containerized Execution (Docker / OCI)**:
    A lightweight, multi-stage Docker image packaging `cairn-test` with Python 3.12 and OpenSSH verification utilities enables running test suites inside Kubernetes cron jobs, AWS Fargate, or cloud runners with isolated network boundaries.
 
+### 13.3 Plugin-Driven Scaffolding & AI Agent Onboarding Protocols
+
+To make onboarding instant for both human developers and autonomous AI coding agents (Antigravity, Cursor, Claude, Copilot):
+
+1. **Division of Scaffolding Responsibilities**:
+   - **Core Engine**: Governs the universal layout (`tests/`, `traces/`, `approvals/`, `proposals/`, `reports/`, `schemas/`, `.vscode/`), copies canonical JSON schemas, generates IDE autocompletion configurations, and enforces the Untrusted Agent Invariant (agents propose; only human keys approve).
+   - **Domain Plugins**: Provide domain-specific scaffolding hooks and contract ingestion:
+     - **API Plugin**: Ingests local files or remote OpenAPI URLs (`--spec https://...`), sets up `envs/local.yaml` with `base_url`, and deterministically drafts initial happy-path and negative tests (`cairn-test draft`).
+     - **Future Plugins (Web UI, CLI, gRPC, Kafka)**: Ingest domain targets (e.g. `--url <web_app>` for Web UI, proto files for gRPC) to generate domain-appropriate environment profiles, sample fixtures, and assertions.
+
+2. **Automated Practitioner & Agent `README.md` Generation**:
+   Every `cairn-test init` automatically scaffolds a tailored `README.md` containing:
+   - **Human Quickstart**: Target endpoint configuration, drafting from spec, live trace recording, and cryptographic signing.
+   - **Instructions for AI Coding Agents**:
+     - *Declarative Data Only*: Directs agents to author `tests/*.test.yaml` using `# yaml-language-server: $schema=...` pragmas; forbids agents from generating fragile script harnesses.
+     - *The Untrusted Agent Invariant*: Instructs agents to run `cairn-test record`, generate trace proposals, and explicitly request human sign-off via `cairn-test review` and `cairn-test approve`.
+     - *Spec Drift Healing*: Teaches agents to execute `cairn-test impact --spec-diff` and `cairn-test heal --spec-diff` when API contracts change.
+
 ## 14. API plugin (v1)
 
 - OpenAPI 3.0/3.1 ingestion; normalized per-operation hashing including `$ref`s.

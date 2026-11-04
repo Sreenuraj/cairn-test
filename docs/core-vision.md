@@ -29,7 +29,7 @@ Long-term positioning: **a domain-neutral verification layer for AI-written soft
 | 2 | Suite-strength measurement (seeded faults, mutation-style) | Benchmark seeded changes only; general fault seeding post-v1 |
 | 3 | Richer checks: property, metamorphic, differential, statistical | CEL `property` is a should; the rest post-v1 |
 | 4 | Two loops: an exploration agent proposes, deterministic tests verify | Post-v1 |
-| 5 | Agents as first-class users | `--json` everywhere and `explain` in v1; MCP is a should |
+| 5 | Agents as first-class users | `--json` everywhere, `explain` in v1, MCP server, and auto-scaffolded AI agent onboarding README protocols |
 | 6 | Change-based selection | Spec-diff in v1; code-diff post-v1 |
 | 7 | A general Observation model with identical / additive / breaking diffs | **In v1** (API); UI paper sketch |
 | 8 | Framework fundamentals as data: fixtures, parameterization, sessions, isolation, quarantine | Isolation in v1 (M); fixtures, parameterization, quarantine are should |

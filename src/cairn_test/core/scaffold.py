@@ -77,6 +77,99 @@ expect:
     status: 200
 """
 
+DEFAULT_SCAFFOLD_README = """# {project_name} Test Suite
+
+This test suite is powered by [cairn-test](https://github.com/Sreenuraj/cairn-test), a trace-based, domain-neutral test framework for the AI era.
+
+## 🚀 Quickstart for Humans
+
+### 1. Configure Target Service
+Update your target endpoint in `envs/local.yaml`:
+```yaml
+base_url: "http://localhost:8000"  # or your remote staging URL
+timeout_ms: 5000
+```
+
+### 2. Draft Tests from Specification
+Draft baseline test proposals automatically from your OpenAPI contract:
+```bash
+cairn-test draft --spec {spec_path}
+```
+
+### 3. Record Baseline Observations
+Record live API responses as inert proposals:
+```bash
+cairn-test record tests/sample.test.yaml
+```
+
+### 4. Review & Sign Cryptographic Approval
+```bash
+# Inspect proposed changes
+cairn-test review
+
+# Sign approval with your SSH hardware key (locks LF SHA-256 hashes)
+cairn-test approve <test-id>
+```
+
+### 5. Run the Suite
+```bash
+# Standard dev run
+cairn-test run
+
+# Strict verification mode (enforces cryptographic signatures)
+cairn-test run --strict
+```
+
+---
+
+## 🤖 Instructions for AI Coding Agents (Cursor, Antigravity, Claude, Copilot)
+
+If you are an AI coding assistant working in this repository, follow these rules:
+
+### 1. Tests are Pure Declarative Data
+- Write test definitions in `tests/<test-id>.test.yaml`.
+- Do not write executable test harnesses or test scripts. Tests must be valid `cairn-test.test/v1` documents.
+- Add the schema pragma at the top of every test file:
+  ```yaml
+  # yaml-language-server: $schema=../schemas/test.v1.json
+  schema: "cairn-test.test/v1"
+  id: "<test-id>"
+  tags:
+    - "api"
+  steps:
+    - id: "step_0"
+      op: "<operationId>"
+      args: {{}}
+  expect:
+    - after: "step_0"
+      status: 200
+  ```
+
+### 2. The Untrusted Agent Invariant
+- As an AI agent, you **CANNOT** sign approvals (`cairn-test approve`). You do not possess the human's hardware private key (`ed25519-sk`).
+- When you generate or update a test, execute:
+  ```bash
+  cairn-test record tests/<test-id>.test.yaml
+  ```
+- Then, inform the human developer:
+  > *"I have recorded a new trace proposal for `<test-id>`. Please run `cairn-test review` and `cairn-test approve <test-id>` with your SSH key."*
+- **Never attempt to edit assertions or approved trace hashes** to force a failing test to pass.
+
+### 3. Handling Contract Drift & Spec Changes
+- When an API route, parameter, or schema changes in `{spec_path}`, run:
+  ```bash
+  cairn-test impact --spec-diff {spec_path}
+  cairn-test heal --spec-diff {spec_path}
+  ```
+- The healer will generate deterministic proposals for updated request coordinates. Present them to the human for approval.
+
+### 4. Verification Check
+- Before finishing your task, verify with:
+  ```bash
+  cairn-test run
+  ```
+"""
+
 VSCODE_SETTINGS = {
     "yaml.schemas": {
         "./schemas/test.v1.json": ["tests/**/*.test.yaml", "tests/*.test.yaml"],
@@ -156,6 +249,16 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
     sample_test = target_dir / "tests" / "sample.test.yaml.example"
     if not sample_test.exists():
         sample_test.write_text(DEFAULT_SAMPLE_TEST, encoding="utf-8")
+
+    # Write scaffold README with human quickstart & AI agent instructions
+    readme_file = target_dir / "README.md"
+    readme_content = DEFAULT_SCAFFOLD_README.format(project_name=target_dir.name, spec_path=final_spec_path)
+    if not readme_file.exists():
+        readme_file.write_text(readme_content, encoding="utf-8")
+    else:
+        cairn_readme = target_dir / "CAIRN_README.md"
+        if not cairn_readme.exists():
+            cairn_readme.write_text(readme_content, encoding="utf-8")
 
     return {
         "status": "initialized",

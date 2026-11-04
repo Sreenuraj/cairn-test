@@ -61,15 +61,42 @@ EXIT_DRIFT = 2
 EXIT_ERROR = 3
 EXIT_CLI_ERROR = 4
 
+def fetch_remote_spec(url: str, dest_dir: Path) -> Path:
+    import urllib.parse
+    import urllib.request
+    parsed = urllib.parse.urlparse(url)
+    raw_name = Path(parsed.path).name
+    if not raw_name or not (raw_name.endswith(".yaml") or raw_name.endswith(".yml") or raw_name.endswith(".json")):
+        raw_name = "openapi.yaml"
+    dest_path = dest_dir / raw_name
+    print(f"Downloading remote specification from {url}...")
+    req = urllib.request.Request(url, headers={"User-Agent": "cairn-test/1.0"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        content = resp.read()
+    dest_path.write_bytes(content)
+    print(f"Saved remote specification to {dest_path}")
+    return dest_path
+
 def init_command(args: argparse.Namespace) -> int:
-    target_dir = Path(args.dir or ".")
-    res = init_project(target_dir, spec_path=args.spec)
+    target_dir = Path(args.dir or ".").resolve()
+    target_dir.mkdir(parents=True, exist_ok=True)
+    spec_arg = args.spec
+    if spec_arg and (spec_arg.startswith("http://") or spec_arg.startswith("https://")):
+        try:
+            local_spec_path = fetch_remote_spec(spec_arg, target_dir)
+            spec_arg = str(local_spec_path)
+        except Exception as e:
+            print(f"Error downloading remote specification from {spec_arg}: {e}", file=sys.stderr)
+            return EXIT_CLI_ERROR
+
+    res = init_project(target_dir, spec_path=spec_arg)
     if args.json:
         print(json.dumps(res, indent=2))
     else:
         print(f"Initialized cairn-test project in {res['root']}")
         print(f"Spec: {res['spec']}")
         print("Created directories: " + ", ".join(res["directories"]))
+        print(f"Scaffolded practitioner & AI agent guide in README.md")
     return EXIT_PASS
 
 def run_command(args: argparse.Namespace) -> int:
