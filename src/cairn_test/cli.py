@@ -352,6 +352,65 @@ def explain_command(args: argparse.Namespace) -> int:
             print(f"Drift Detail: {info['drift_detail']}")
     return EXIT_PASS
 
+def resolve_test_target(repo_root: Path, target: str) -> tuple[Path | None, str]:
+    """
+    Resolves a test target string (file path, bare filename, or test ID) to:
+    (test_file_path or None, clean_test_id)
+    """
+    target = target.strip()
+    target_path = Path(target)
+
+    # 1. Direct path (e.g. tests/foo.test.yaml)
+    candidate = repo_root / target_path if not target_path.is_absolute() else target_path
+    if candidate.is_file():
+        try:
+            td = load_yaml(candidate)
+            if isinstance(td, dict) and "id" in td:
+                return candidate, td["id"]
+        except Exception:
+            pass
+        return candidate, target_path.stem.replace(".test", "")
+
+    # 2. Bare filename inside tests/ (e.g. foo.test.yaml -> tests/foo.test.yaml)
+    candidate_in_tests = repo_root / "tests" / target_path.name
+    if candidate_in_tests.is_file():
+        try:
+            td = load_yaml(candidate_in_tests)
+            if isinstance(td, dict) and "id" in td:
+                return candidate_in_tests, td["id"]
+        except Exception:
+            pass
+        return candidate_in_tests, candidate_in_tests.stem.replace(".test", "")
+
+    # 3. Clean target by stripping extensions and draft_ prefix
+    clean_id = target_path.stem.replace(".test", "")
+    unprefixed_id = clean_id[6:] if clean_id.startswith("draft_") else clean_id
+
+    # 4. Check tests/{clean_id}.test.yaml and tests/{unprefixed_id}.test.yaml
+    for tid in (clean_id, unprefixed_id):
+        f = repo_root / "tests" / f"{tid}.test.yaml"
+        if f.is_file():
+            try:
+                td = load_yaml(f)
+                if isinstance(td, dict) and "id" in td:
+                    return f, td["id"]
+            except Exception:
+                pass
+            return f, tid
+
+    # 5. Scan all test files in tests/ for matching YAML id
+    tests_dir = repo_root / "tests"
+    if tests_dir.is_dir():
+        for tf in sorted(tests_dir.glob("*.test.yaml")):
+            try:
+                td = load_yaml(tf)
+                if isinstance(td, dict) and td.get("id") in (target, clean_id, unprefixed_id):
+                    return tf, td["id"]
+            except Exception:
+                pass
+
+    return None, unprefixed_id
+
 def record_command(args: argparse.Namespace) -> int:
     config = Config.load()
     base_url = args.base_url or config.env_profiles.get(config.default_env, {}).get("base_url", "http://localhost:8080")
@@ -369,45 +428,27 @@ def record_command(args: argparse.Namespace) -> int:
 
     # 1. Target provided as positional argument
     if target:
-        target_path = Path(target)
-        if target_path.is_file():
-            # Direct test file path
-            try:
-                td = load_yaml(target_path)
-                if isinstance(td, dict) and "id" in td:
-                    discovered = [td]
-            except Exception as e:
-                print(f"Error loading test file {target_path}: {e}", file=sys.stderr)
-                return EXIT_CLI_ERROR
+        test_file, test_id = resolve_test_target(repo_root, target)
+        if test_file and test_file.is_file():
+            discovered = [load_yaml(test_file)]
         elif Path(f"{target}.example").is_file():
             # If target has .example counterpart (e.g. sample.test.yaml.example), copy and load
             ex_path = Path(f"{target}.example")
-            shutil.copy2(ex_path, target_path)
-            td = load_yaml(target_path)
+            shutil.copy2(ex_path, Path(target))
+            td = load_yaml(Path(target))
             discovered = [td]
         else:
-            # 1. Look in tests_dir for matching test ID or filename
-            target_clean = target[6:] if target.startswith("draft_") else target
-            disc_all = discover_tests(tests_dir)
-            discovered = [
-                t for t in disc_all
-                if t.get("id") in (target, target_clean)
-                or t.get("id") == target.replace(".test.yaml", "")
-                or t.get("id") == target_clean.replace(".test.yaml", "")
-            ]
-
-            # 2. If not found in tests_dir, check if target is a draft proposal in proposals/ to auto-promote
-            if not discovered:
-                prop_file = repo_root / "proposals" / f"{target}.proposal.yaml"
-                if not prop_file.is_file():
-                    prop_file = repo_root / "proposals" / f"draft_{target_clean}.proposal.yaml"
-                if not prop_file.is_file():
-                    prop_file = repo_root / "proposals" / f"{target_clean}.proposal.yaml"
+            # Check proposals to auto-promote
+            clean_id = Path(target).stem.replace(".test", "")
+            unprefixed_id = clean_id[6:] if clean_id.startswith("draft_") else clean_id
+            for p_name in (f"{clean_id}.proposal.yaml", f"draft_{unprefixed_id}.proposal.yaml", f"{unprefixed_id}.proposal.yaml"):
+                prop_file = repo_root / "proposals" / p_name
                 if prop_file.is_file():
                     from cairn_test.core.draft import promote_drafts
-                    promoted = promote_drafts(repo_root, target_ids=[target, target_clean])
+                    promoted = promote_drafts(repo_root, target_ids=[clean_id, unprefixed_id])
                     if promoted:
                         discovered = [load_yaml(promoted[0])]
+                    break
 
     elif args.id:
         target_ids = set(args.id.split(","))
@@ -602,52 +643,28 @@ def _find_approvable_candidates(repo_root: Path) -> list[str]:
     return candidates
 
 def _approve_single_test(repo_root: Path, target: str, args: argparse.Namespace) -> int:
-    test_id = target
-    test_file = repo_root / "tests" / f"{test_id}.test.yaml"
+    test_file, test_id = resolve_test_target(repo_root, target)
 
-    if not test_file.is_file():
-        # 1. Check if target is a direct file path (e.g. tests/sample.test.yaml)
-        target_path = Path(target)
-        if target_path.is_file():
-            try:
-                td = load_yaml(target_path)
-                if isinstance(td, dict) and "id" in td:
-                    test_file = target_path
-                    test_id = td["id"]
-            except Exception:
-                pass
-        else:
-            # 2. Check all test files in tests/ to find matching test ID
-            target_clean = target[6:] if target.startswith("draft_") else target
-            for tf in sorted((repo_root / "tests").glob("*.test.yaml")):
-                try:
-                    td = load_yaml(tf)
-                    if isinstance(td, dict) and td.get("id") in (test_id, target_clean):
-                        test_file = tf
-                        test_id = td.get("id")
-                        break
-                except Exception:
-                    pass
+    if not test_file or not test_file.is_file():
+        # Check if target matches a draft proposal in proposals/ to auto-promote
+        clean_id = Path(target).stem.replace(".test", "")
+        unprefixed_id = clean_id[6:] if clean_id.startswith("draft_") else clean_id
+        for p_name in (f"{clean_id}.proposal.yaml", f"draft_{unprefixed_id}.proposal.yaml", f"{unprefixed_id}.proposal.yaml"):
+            prop_file = repo_root / "proposals" / p_name
+            if prop_file.is_file():
+                from cairn_test.core.draft import promote_drafts
+                promoted = promote_drafts(repo_root, target_ids=[clean_id, unprefixed_id])
+                if promoted:
+                    test_file = promoted[0]
+                    td = load_yaml(test_file)
+                    if isinstance(td, dict) and "id" in td:
+                        test_id = td["id"]
+                break
 
-    if not test_file.is_file():
-        # 3. Check if test_id matches a draft proposal in proposals/
-        target_clean = target[6:] if target.startswith("draft_") else target
-        prop_file = repo_root / "proposals" / f"{test_id}.proposal.yaml"
-        if not prop_file.is_file():
-            prop_file = repo_root / "proposals" / f"draft_{target_clean}.proposal.yaml"
-        if not prop_file.is_file():
-            prop_file = repo_root / "proposals" / f"{target_clean}.proposal.yaml"
-        if prop_file.is_file():
-            from cairn_test.core.draft import promote_drafts
-            promoted = promote_drafts(repo_root, target_ids=[test_id, target_clean])
-            if promoted:
-                test_file = promoted[0]
-                td = load_yaml(test_file)
-                if isinstance(td, dict) and "id" in td:
-                    test_id = td["id"]
-        if not test_file.is_file():
-            print(f"Error: Test definition not found for '{test_id}' at {test_file}")
-            return EXIT_CLI_ERROR
+    if not test_file or not test_file.is_file():
+        expected_path = repo_root / "tests" / f"{test_id}.test.yaml"
+        print(f"Error: Test definition not found for '{target}' at {expected_path}")
+        return EXIT_CLI_ERROR
 
     test_def = load_yaml(test_file)
     if isinstance(test_def, dict) and "id" in test_def:
@@ -758,9 +775,8 @@ def approve_command(args: argparse.Namespace) -> int:
                     print(f"  - {tid}")
                 if len(candidates) > 10:
                     print(f"  ... and {len(candidates) - 10} more")
-                print("\nUsage:")
-                print("  cairn-test approve <test-id>")
-                print("  cairn-test approve --all")
+                print(f"\nTip: Run 'cairn-test approve --all' to sign all {len(candidates)} proposals at once.")
+                print("Or sign a specific test: cairn-test approve <test-id>")
                 return EXIT_CLI_ERROR
     else:
         targets = [t.strip() for t in raw_target.split(",") if t.strip()]

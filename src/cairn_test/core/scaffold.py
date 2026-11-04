@@ -98,7 +98,10 @@ cairn-test record tests/<test-id>.test.yaml
 # Inspect recorded traces and diffs
 cairn-test review
 
-# Sign approval with your SSH key (locks LF SHA-256 baseline)
+# Batch-approve all pending proposals (recommended):
+cairn-test approve --all
+
+# Or approve a specific test:
 cairn-test approve <test-id>
 ```
 
@@ -156,7 +159,7 @@ If you are an AI coding assistant working in this repository, follow these rules
   cairn-test record
   ```
 - Then, inform the human developer:
-  > *"I have drafted the tests and recorded trace proposals. Please run `cairn-test review` and `cairn-test approve <test-id>` with your SSH key."*
+  > *"I have drafted the tests and recorded trace proposals. Please run `cairn-test review` and `cairn-test approve --all` (or `cairn-test approve <test-id>`) with your SSH key."*
 - **Never attempt to edit assertions or approved trace hashes** to force a failing test to pass.
 
 ### 3. Handling Contract Drift & Spec Changes

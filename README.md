@@ -136,7 +136,10 @@ Review the recorded trace and sign approval with your SSH key:
 # Review proposal diff
 cairn-test review
 
-# Sign approval (locks LF SHA-256 covers)
+# Batch-approve all pending proposals (recommended):
+cairn-test approve --all
+
+# Or sign a specific test:
 cairn-test approve <test-id>
 ```
 

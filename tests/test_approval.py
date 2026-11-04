@@ -198,6 +198,20 @@ def test_approve_cli_no_args_and_candidate_discovery():
         assert (root / "approvals" / "batch-test-1.approval.yaml").is_file()
         assert (root / "approvals" / "batch-test-2.approval.yaml").is_file()
 
+        # 5. cairn-test approve with bare filename: foo.test.yaml (not failing with foo.test.yaml.test.yaml)
+        tid = "bare-filename-test"
+        (root / "tests" / f"{tid}.test.yaml").write_text(f"schema: cairn-test.test/v1\nid: {tid}\n")
+        tr_d = {"schema": "cairn-test.trace/v1", "test": tid, "spec_hash": "a" * 64, "env_profile": "local", "steps": []}
+        with open(root / "proposals" / f"{tid}.trace.yaml", "w") as f:
+            yaml.safe_dump(tr_d, f)
+        with open(root / "proposals" / f"{tid}.proposal.yaml", "w") as f:
+            yaml.safe_dump({"schema": "cairn-test.proposal/v1", "id": "p-bare", "test": tid, "status": "pending", "details": {}}, f)
+
+        res_bare = subprocess.run(cmd + ["approve", f"{tid}.test.yaml"], capture_output=True, text=True, cwd=str(root), env=env)
+        assert res_bare.returncode == 0
+        assert f"Successfully approved '{tid}'" in res_bare.stdout
+        assert (root / "approvals" / f"{tid}.approval.yaml").is_file()
+
 if __name__ == "__main__":
     test_line_ending_normalization()
     test_canonicalize_payload()
