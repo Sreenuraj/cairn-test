@@ -8,6 +8,7 @@ Verifies:
 
 import importlib
 import pkgutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -39,21 +40,32 @@ FORBIDDEN_MODULE_PREFIXES = (
 def test_nfr8_core_import_isolation():
     """
     NFR-8: Core has no dependency on HTTP, browser, or model libraries (enforced by an import test).
+    Runs in a clean subprocess so test runner harness/plugins (e.g. pytest-playwright) do not pollute sys.modules.
     """
-    import cairn_test.core
-    
-    # Recursively import all submodules under cairn_test.core
-    core_package = cairn_test.core
-    prefix = core_package.__name__ + "."
-    for _, modname, _ in pkgutil.walk_packages(core_package.__path__, prefix):
-        importlib.import_module(modname)
+    code = """
+import sys, pkgutil, importlib
+import cairn_test.core
 
-    # Check sys.modules for any forbidden imports
-    loaded_forbidden = [
-        name for name in sys.modules
-        if any(name == forbidden or name.startswith(forbidden + ".") for forbidden in FORBIDDEN_MODULE_PREFIXES)
-    ]
-    assert not loaded_forbidden, f"NFR-8 VIOLATION: Forbidden modules found in sys.modules: {loaded_forbidden}"
+prefix = cairn_test.core.__name__ + "."
+for _, modname, _ in pkgutil.walk_packages(cairn_test.core.__path__, prefix):
+    importlib.import_module(modname)
+
+FORBIDDEN = (
+    "requests", "httpx", "urllib3", "aiohttp", "http.client",
+    "playwright", "selenium", "puppeteer",
+    "openai", "anthropic", "google.genai", "google.generativeai",
+    "transformers", "torch", "langchain",
+)
+loaded_forbidden = [
+    name for name in sys.modules
+    if any(name == f or name.startswith(f + ".") for f in FORBIDDEN)
+]
+if loaded_forbidden:
+    print(f"FORBIDDEN:{loaded_forbidden}")
+    sys.exit(1)
+"""
+    res = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert res.returncode == 0, f"NFR-8 VIOLATION: Forbidden modules found in sys.modules: {res.stdout} {res.stderr}"
     print("NFR-8 Check PASSED: No HTTP, browser, or model libraries loaded in core.")
 
 def test_config_loading():

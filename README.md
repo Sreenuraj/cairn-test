@@ -159,7 +159,7 @@ cairn-test run --strict
 | Command | Description | Example |
 | :--- | :--- | :--- |
 | `init` | Scaffold project structure from an OpenAPI spec | `cairn-test init --spec openapi.yaml` |
-| `draft` | Deterministically draft baseline tests from spec operations | `cairn-test draft --spec openapi.yaml` |
+| `draft` | Deterministically draft baseline tests from spec operations (`--tests`, `--promote`) | `cairn-test draft --spec openapi.yaml --tests` |
 | `record` | Record live response observations into trace proposals | `cairn-test record tests/order.test.yaml` |
 | `review` | Inspect pending proposals and approved file diffs | `cairn-test review` |
 | `approve` | Sign cryptographic approval using an OpenSSH key | `cairn-test approve test-id --key ~/.ssh/id_ed25519_sk` |

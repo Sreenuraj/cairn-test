@@ -355,13 +355,50 @@ def record_command(args: argparse.Namespace) -> int:
     if spec_path and Path(spec_path).is_file():
         spec = OpenAPISpec.load(spec_path)
 
-    discovered = discover_tests(tests_dir)
-    if args.id:
+    discovered = []
+    target = getattr(args, "target", None)
+
+    # 1. Target provided as positional argument
+    if target:
+        target_path = Path(target)
+        if target_path.is_file():
+            # Direct test file path
+            try:
+                td = load_yaml(target_path)
+                if isinstance(td, dict) and "id" in td:
+                    discovered = [td]
+            except Exception as e:
+                print(f"Error loading test file {target_path}: {e}", file=sys.stderr)
+                return EXIT_CLI_ERROR
+        elif Path(f"{target}.example").is_file():
+            # If target has .example counterpart (e.g. sample.test.yaml.example), copy and load
+            ex_path = Path(f"{target}.example")
+            shutil.copy2(ex_path, target_path)
+            td = load_yaml(target_path)
+            discovered = [td]
+        else:
+            # Check if target is a draft proposal in proposals/
+            prop_file = repo_root / "proposals" / f"{target}.proposal.yaml"
+            if prop_file.is_file():
+                from cairn_test.core.draft import promote_drafts
+                promoted = promote_drafts(repo_root, target_ids=[target])
+                if promoted:
+                    discovered = [load_yaml(promoted[0])]
+            else:
+                # Look in tests_dir for matching test ID
+                disc_all = discover_tests(tests_dir)
+                discovered = [t for t in disc_all if t.get("id") == target or t.get("id") == target.replace(".test.yaml", "")]
+
+    elif args.id:
         target_ids = set(args.id.split(","))
-        discovered = [t for t in discovered if t["id"] in target_ids]
+        disc_all = discover_tests(tests_dir)
+        discovered = [t for t in disc_all if t["id"] in target_ids]
+    else:
+        discovered = discover_tests(tests_dir)
 
     if not discovered:
         print(f"No matching tests found to record in {tests_dir}")
+        print("Tip: If you ran 'cairn-test draft', run 'cairn-test draft --promote' to promote drafts to tests/.")
         return EXIT_CLI_ERROR
 
     recorded_count = 0
@@ -401,12 +438,16 @@ def review_command(args: argparse.Namespace) -> int:
     tests_dir = Path(args.tests_dir or "tests")
 
     discovered = discover_tests(tests_dir)
-    if args.id:
-        target_ids = set(args.id.split(","))
+    discovered_ids = {t["id"] for t in discovered}
+
+    target_id_filter = getattr(args, "id_flag", None) or getattr(args, "id", None)
+    target_ids = set(target_id_filter.split(",")) if target_id_filter else set()
+    if target_id_filter:
         discovered = [t for t in discovered if t["id"] in target_ids]
 
     reviews: list[dict[str, Any]] = []
 
+    # 1. Process discovered tests in tests/
     for test_def in discovered:
         test_id = test_def["id"]
         prop_file = props_dir / f"{test_id}.proposal.yaml"
@@ -440,33 +481,78 @@ def review_command(args: argparse.Namespace) -> int:
         reviews.append({
             "test_id": test_id,
             "has_proposal": prop_file.is_file(),
+            "kind": proposal_info.get("kind", "test") if proposal_info else "test",
             "labels": labels,
             "summary": proposal_info.get("details", {}).get("summary", proposal_info.get("reason")) if proposal_info else "No pending proposal",
             "steps": proposal_info.get("details", {}).get("steps", []) if proposal_info else [],
         })
 
+    # 2. Process pending proposals in proposals/ that are not yet in tests/ (e.g. draft proposals)
+    if props_dir.is_dir():
+        for pfile in sorted(props_dir.glob("*.proposal.yaml")):
+            try:
+                pdata = load_yaml(pfile)
+            except Exception:
+                continue
+            if not isinstance(pdata, dict):
+                continue
+            test_id = pdata.get("test") or pfile.name.replace(".proposal.yaml", "")
+            if test_id in discovered_ids:
+                continue
+            if target_id_filter and test_id not in target_ids:
+                continue
+
+            kind = pdata.get("kind", "proposal")
+            labels = [kind, "pending-promotion"]
+            step_names = []
+            if kind == "draft":
+                draft_test = pdata.get("details", {}).get("draft_test", {})
+                step_names = [s.get("op") or s.get("id") for s in draft_test.get("steps", [])]
+
+            reviews.append({
+                "test_id": test_id,
+                "proposal_id": pdata.get("id"),
+                "has_proposal": True,
+                "kind": kind,
+                "labels": labels,
+                "summary": pdata.get("reason", f"Pending {kind} proposal"),
+                "steps": step_names,
+            })
+
     if args.json:
         print(json.dumps(reviews, indent=2))
     else:
-        print(f"\ncairn-test review ({len(reviews)} tests evaluated):")
+        print(f"\ncairn-test review ({len(reviews)} items evaluated):")
         print("=" * 60)
         for r in reviews:
             prop_flag = "[PROPOSAL PENDING]" if r["has_proposal"] else "[UP TO DATE]"
             print(f"{r['test_id']:<35} {prop_flag:<18} labels: {', '.join(r['labels'])}")
+            if r.get("summary"):
+                print(f"   Summary: {r['summary']}")
             if r["steps"]:
                 for s in r["steps"]:
                     print(f"   -> {s}")
         print("=" * 60)
+        draft_count = sum(1 for r in reviews if r.get("kind") == "draft" and "pending-promotion" in r.get("labels", []))
+        if draft_count > 0:
+            print(f"\nFound {draft_count} draft test proposals. To promote them to runnable tests in tests/, run:")
+            print("  cairn-test draft --promote")
 
     return EXIT_PASS
 
 def approve_command(args: argparse.Namespace) -> int:
     repo_root = Path(".")
-    test_id = args.id
+    test_id = getattr(args, "id_flag", None) or args.id
     test_file = repo_root / "tests" / f"{test_id}.test.yaml"
     if not test_file.is_file():
-        print(f"Error: Test definition not found for '{test_id}' at {test_file}")
-        return EXIT_CLI_ERROR
+        # Check if test_id matches a draft proposal in proposals/
+        prop_file = repo_root / "proposals" / f"{test_id}.proposal.yaml"
+        if prop_file.is_file():
+            from cairn_test.core.draft import promote_drafts
+            promote_drafts(repo_root, target_ids=[test_id])
+        if not test_file.is_file():
+            print(f"Error: Test definition not found for '{test_id}' at {test_file}")
+            return EXIT_CLI_ERROR
 
     test_def = load_yaml(test_file)
 
@@ -556,8 +642,9 @@ def verify_command(args: argparse.Namespace) -> int:
     tests_dir = Path(args.tests_dir or "tests")
 
     discovered = discover_tests(tests_dir)
-    if args.id:
-        target_ids = set(args.id.split(","))
+    target_id_filter = getattr(args, "id_flag", None) or getattr(args, "id", None)
+    if target_id_filter:
+        target_ids = set(target_id_filter.split(","))
         discovered = [t for t in discovered if t["id"] in target_ids]
 
     results: list[dict[str, Any]] = []
@@ -927,10 +1014,25 @@ def status_command(args: argparse.Namespace) -> int:
     return EXIT_PASS
 
 def draft_command(args: argparse.Namespace) -> int:
-    from cairn_test.core.draft import SpecDrafter
+    from cairn_test.core.draft import SpecDrafter, promote_drafts
     from cairn_test.plugins.api.spec import OpenAPISpec
 
     repo_root = Path(".")
+
+    # Handle --promote
+    if getattr(args, "promote", False):
+        promoted = promote_drafts(repo_root)
+        if getattr(args, "json", False):
+            print(json.dumps({"promoted_count": len(promoted), "tests": [str(p) for p in promoted]}, indent=2))
+        else:
+            print(f"\ncairn-test draft: promoted {len(promoted)} draft proposals into tests/")
+            print("=" * 60)
+            for p in promoted:
+                print(f"TEST -> {p}")
+            print("=" * 60)
+            print("Run 'cairn-test record' to record baseline observations for these tests.")
+        return EXIT_PASS
+
     config = Config.load()
     spec_path = args.spec or config.spec
     if not spec_path or not Path(spec_path).is_file():
@@ -939,16 +1041,25 @@ def draft_command(args: argparse.Namespace) -> int:
 
     spec = OpenAPISpec.load(spec_path)
     drafter = SpecDrafter(spec)
-    paths = drafter.draft_suite(repo_root)
+    write_tests = getattr(args, "tests", False) or getattr(args, "out", "") == "tests"
+    paths = drafter.draft_suite(repo_root, write_tests=write_tests)
 
     if args.json:
-        print(json.dumps({"drafts_created": len(paths), "paths": [str(p) for p in paths]}, indent=2))
+        key = "tests_created" if write_tests else "drafts_created"
+        print(json.dumps({key: len(paths), "paths": [str(p) for p in paths]}, indent=2))
     else:
-        print(f"\ncairn-test draft: generated {len(paths)} draft proposals in proposals/")
+        dest_desc = "runnable tests in tests/" if write_tests else "draft proposals in proposals/"
+        print(f"\ncairn-test draft: generated {len(paths)} {dest_desc}")
         print("=" * 60)
         for p in paths:
-            print(f"DRAFT -> {p}")
+            prefix = "TEST" if write_tests else "DRAFT"
+            print(f"{prefix} -> {p}")
         print("=" * 60)
+        if not write_tests:
+            print("To promote these draft proposals to runnable tests in tests/, run:")
+            print("  cairn-test draft --promote")
+            print("Or review them first with:")
+            print("  cairn-test review")
     return EXIT_PASS
 
 def plugin_command(args: argparse.Namespace) -> int:
@@ -991,6 +1102,8 @@ def main() -> None:
     # draft command
     draft_parser = subparsers.add_parser("draft", help="Deterministically draft baseline tests from OpenAPI spec")
     draft_parser.add_argument("--spec", type=str, help="Path to OpenAPI spec")
+    draft_parser.add_argument("--tests", action="store_true", help="Write runnable test definitions directly into tests/")
+    draft_parser.add_argument("--promote", action="store_true", help="Promote existing draft proposals from proposals/ into tests/")
     draft_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # run command
@@ -1015,6 +1128,7 @@ def main() -> None:
 
     # record command
     rec_parser = subparsers.add_parser("record", help="Record traces for tests as inert proposals")
+    rec_parser.add_argument("target", nargs="?", default=None, help="Path to test file (e.g. tests/sample.test.yaml), draft ID, or test ID")
     rec_parser.add_argument("--id", type=str, help="Specific test ID(s) to record (comma-separated)")
     rec_parser.add_argument("--spec", type=str, help="Path to OpenAPI specification")
     rec_parser.add_argument("--base-url", type=str, help="Target API base URL")
@@ -1026,12 +1140,14 @@ def main() -> None:
     # review command
     rev_parser = subparsers.add_parser("review", help="Review proposals and differences with approved files")
     rev_parser.add_argument("id", nargs="?", type=str, help="Optional test ID to review")
+    rev_parser.add_argument("--id", dest="id_flag", type=str, help="Optional test ID to review")
     rev_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
     rev_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")
 
     # approve command
     appr_parser = subparsers.add_parser("approve", help="Sign cryptographic approval for a test")
-    appr_parser.add_argument("id", type=str, help="Test ID to approve")
+    appr_parser.add_argument("id", nargs="?", type=str, help="Test ID to approve")
+    appr_parser.add_argument("--id", dest="id_flag", type=str, help="Test ID to approve")
     appr_parser.add_argument("--key", type=str, help="Path to OpenSSH private key")
     appr_parser.add_argument("--identity", type=str, help="Signer identity / name")
     appr_parser.add_argument("--labels", type=str, help="Extra review labels (comma-separated)")
@@ -1039,6 +1155,7 @@ def main() -> None:
     # verify command
     ver_parser = subparsers.add_parser("verify", help="Verify cryptographic approvals in strict mode")
     ver_parser.add_argument("id", nargs="?", type=str, help="Optional test ID to verify")
+    ver_parser.add_argument("--id", dest="id_flag", type=str, help="Optional test ID to verify")
     ver_parser.add_argument("--env", type=str, help="Target environment profile")
     ver_parser.add_argument("--tests-dir", type=str, default="tests", help="Directory containing test files")
     ver_parser.add_argument("--json", action="store_true", help="Output machine-readable JSON")

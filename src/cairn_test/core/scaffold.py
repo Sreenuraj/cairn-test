@@ -91,9 +91,15 @@ timeout_ms: 5000
 ```
 
 ### 2. Draft Tests from Specification
-Draft baseline test proposals automatically from your OpenAPI contract:
+Draft tests automatically from your OpenAPI contract:
 ```bash
+# Option A: Draft directly into tests/ as runnable tests
+cairn-test draft --spec {spec_path} --tests
+
+# Option B: Draft into proposals/, review, and promote
 cairn-test draft --spec {spec_path}
+cairn-test review
+cairn-test draft --promote
 ```
 
 ### 3. Record Baseline Observations

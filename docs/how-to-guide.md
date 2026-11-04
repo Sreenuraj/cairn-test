@@ -49,6 +49,18 @@ This scaffolds:
 * `approvals/`: Directory for cryptographic human approvals (`*.approval.yaml`).
 * `proposals/`: Directory for unapproved trace/heal proposals.
 
+### Step 2b: Draft Baseline Tests from Specification
+Instead of writing YAML tests by hand, you can automatically draft them from your OpenAPI spec:
+```bash
+# Option A: Draft directly into tests/ as runnable tests
+cairn-test draft --spec openapi.yaml --tests
+
+# Option B: Draft into proposals/, review, and promote
+cairn-test draft --spec openapi.yaml
+cairn-test review
+cairn-test draft --promote
+```
+
 ### Step 3: Author a Declarative Test
 Create `tests/B01-login.test.yaml`:
 ```yaml
