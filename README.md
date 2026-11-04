@@ -97,39 +97,33 @@ uv pip install -e .
 ```
 
 ### 1. Initialize a Project
-Scaffold a new project from your OpenAPI specification:
+Scaffold a new project from your OpenAPI specification (or URL):
 ```bash
 cairn-test init --spec path/to/openapi.yaml
 ```
+*This automatically derives target API endpoints for `envs/local.yaml` from spec `servers`.*
 
-### 2. Write a Declarative YAML Test
-Create `tests/get-product.test.yaml`:
-```yaml
-schema: cairn-test.test/v1
-id: get-product-details
-tags:
-  - products
-  - smoke
-steps:
-  - id: fetch_prod
-    op: getProduct
-    args:
-      id: prod-1
-expect:
-  - after: fetch_prod
-    status: 200
-  - after: fetch_prod
-    jsonpath: $.id
-    equals: prod-1
-  - after: fetch_prod
-    jsonpath: $.price
-    equals: 99.0
+### 2. Draft Baseline Tests & Promotion Flow
+Generate deterministic tests directly from your contract:
+```bash
+# Option A: Draft directly into tests/ as runnable tests (1-step)
+cairn-test draft --spec openapi.yaml --tests
+
+# Option B: Staged draft into proposals/, review, and promote (2-step governance)
+cairn-test draft --spec openapi.yaml
+cairn-test review
+cairn-test draft --promote
 ```
+*(Or manually author declarative YAML tests in `tests/<id>.test.yaml`)*
 
 ### 3. Record Baseline Observations
 Execute against your live target service to record baseline traces as inert proposals:
 ```bash
-cairn-test record tests/get-product.test.yaml
+# Record all drafted tests:
+cairn-test record
+
+# Or record a specific test:
+cairn-test record tests/get-product-details.test.yaml
 ```
 
 ### 4. Review and Sign Approval
@@ -138,7 +132,7 @@ Review the recorded trace and sign approval with your SSH key:
 # Review proposal diff
 cairn-test review
 
-# Sign approval with your SSH key
+# Sign approval (promotes drafts and locks LF SHA-256 covers)
 cairn-test approve get-product-details --key ~/.ssh/id_ed25519_sk
 ```
 

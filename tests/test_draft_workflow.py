@@ -35,7 +35,8 @@ def test_draft_promotion_and_record_flow():
                 capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
             )
             assert (work_dir / "README.md").is_file()
-            assert (work_dir / "tests" / "sample.test.yaml.example").is_file()
+            # tests/ should be clean with 0 dummy test files
+            assert len(list((work_dir / "tests").glob("*.yaml*"))) == 0, "tests/ directory should be clean on init"
 
             # Configure local env base_url
             (work_dir / "envs" / "local.yaml").write_text(f'base_url: "{base_url}"\ntimeout_ms: 5000\n')
@@ -84,21 +85,21 @@ def test_draft_promotion_and_record_flow():
             status_data_post = json.loads(res_status_post.stdout)
             assert status_data_post["total_tests"] == len(test_files)
 
-            # 7. Positional record command: cairn-test record tests/sample.test.yaml
-            res_rec_sample = subprocess.run(
-                cairn_cmd + ["record", "tests/sample.test.yaml", "--base-url", base_url],
-                capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
-            )
-            assert "Recorded proposal" in res_rec_sample.stdout
-            assert (work_dir / "tests" / "sample.test.yaml").is_file()
-
-            # 8. Positional record command on one of the drafted tests:
+            # 7. Positional record command using test file path: cairn-test record tests/<test_file>
             first_test_file = test_files[0]
-            res_rec_drafted = subprocess.run(
-                cairn_cmd + ["record", str(first_test_file), "--base-url", base_url],
+            res_rec_path = subprocess.run(
+                cairn_cmd + ["record", f"tests/{first_test_file.name}", "--base-url", base_url],
                 capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
             )
-            assert "Recorded proposal" in res_rec_drafted.stdout
+            assert "Recorded proposal" in res_rec_path.stdout
+
+            # 8. Positional record command on test ID:
+            first_test_id = first_test_file.stem.replace(".test", "")
+            res_rec_id = subprocess.run(
+                cairn_cmd + ["record", first_test_id, "--base-url", base_url],
+                capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
+            )
+            assert "Recorded proposal" in res_rec_id.stdout
 
             print("Draft-to-test promotion workflow and positional record verified successfully!")
     finally:

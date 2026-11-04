@@ -383,17 +383,18 @@ def record_command(args: argparse.Namespace) -> int:
             td = load_yaml(target_path)
             discovered = [td]
         else:
-            # Check if target is a draft proposal in proposals/
-            prop_file = repo_root / "proposals" / f"{target}.proposal.yaml"
-            if prop_file.is_file():
-                from cairn_test.core.draft import promote_drafts
-                promoted = promote_drafts(repo_root, target_ids=[target])
-                if promoted:
-                    discovered = [load_yaml(promoted[0])]
-            else:
-                # Look in tests_dir for matching test ID
-                disc_all = discover_tests(tests_dir)
-                discovered = [t for t in disc_all if t.get("id") == target or t.get("id") == target.replace(".test.yaml", "")]
+            # 1. Look in tests_dir for matching test ID or filename
+            disc_all = discover_tests(tests_dir)
+            discovered = [t for t in disc_all if t.get("id") == target or t.get("id") == target.replace(".test.yaml", "")]
+
+            # 2. If not found in tests_dir, check if target is a draft proposal in proposals/ to auto-promote
+            if not discovered:
+                prop_file = repo_root / "proposals" / f"{target}.proposal.yaml"
+                if prop_file.is_file():
+                    from cairn_test.core.draft import promote_drafts
+                    promoted = promote_drafts(repo_root, target_ids=[target])
+                    if promoted:
+                        discovered = [load_yaml(promoted[0])]
 
     elif args.id:
         target_ids = set(args.id.split(","))
