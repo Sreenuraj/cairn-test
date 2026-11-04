@@ -105,5 +105,45 @@ def test_draft_promotion_and_record_flow():
     finally:
         server.shutdown()
 
+def test_record_auto_promotes_when_tests_empty():
+    server, base_url = start_reference_server(port=0)
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+
+    cairn_cmd = [sys.executable, "-m", "cairn_test.cli"]
+    cairn_env = {
+        "PYTHONPATH": f"{REPO_ROOT}/src:{REPO_ROOT}",
+    }
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            work_dir = Path(tmp_dir)
+            spec_src = REPO_ROOT / "bench" / "service" / "openapi.yaml"
+            subprocess.run(
+                cairn_cmd + ["init", "--dir", str(work_dir), "--spec", str(spec_src)],
+                capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
+            )
+            (work_dir / "envs" / "local.yaml").write_text(f'base_url: "{base_url}"\ntimeout_ms: 5000\n')
+
+            # User drafts proposals (which go into proposals/, tests/ is empty)
+            subprocess.run(
+                cairn_cmd + ["draft", "--spec", "openapi.yaml"],
+                capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
+            )
+            assert len(list((work_dir / "tests").glob("*.test.yaml"))) == 0
+
+            # User runs cairn-test record directly without running draft --promote
+            res_rec = subprocess.run(
+                cairn_cmd + ["record", "--base-url", base_url],
+                capture_output=True, text=True, cwd=str(work_dir), env=cairn_env, check=True
+            )
+            assert "Auto-promoted" in res_rec.stdout
+            assert len(list((work_dir / "tests").glob("*.test.yaml"))) > 0
+            assert "Successfully recorded" in res_rec.stdout
+            print("Auto-promotion on empty tests/ record verified successfully.")
+    finally:
+        server.shutdown()
+
 if __name__ == "__main__":
     test_draft_promotion_and_record_flow()
+    test_record_auto_promotes_when_tests_empty()

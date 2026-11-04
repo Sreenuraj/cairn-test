@@ -66,38 +66,43 @@ base_url: "{local_url}"
 timeout_ms: 5000
 ```
 
-### 2. Draft Tests from Specification (Promotion Flow)
-Generate deterministic tests directly from your contract:
+### 2. Draft Test Proposals from Specification
+Generate deterministic draft proposals directly from your OpenAPI contract:
 ```bash
-# Option A: Draft directly into tests/ as runnable tests (1-step)
-cairn-test draft --spec {spec_path} --tests
-
-# Option B: Staged draft into proposals/, review, and promote (2-step governance)
 cairn-test draft --spec {spec_path}
+```
+*(Tip: To draft directly into `tests/` as runnable tests in one step, run: `cairn-test draft --spec {spec_path} --tests`)*
+
+### 3. Review & Promote Proposals into Tests
+Review the pending proposals and promote them into active tests:
+```bash
+# Review staged proposals
 cairn-test review
+
+# Promote all draft proposals into runnable tests under tests/
 cairn-test draft --promote
 ```
 
-### 3. Record Baseline Observations
+### 4. Record Baseline Observations
 Record live API responses into trace proposals:
 ```bash
-# Record all drafted tests in tests/:
+# Record all promoted tests in tests/:
 cairn-test record
 
 # Or record a specific test:
 cairn-test record tests/<test-id>.test.yaml
 ```
 
-### 4. Review & Sign Cryptographic Approval
+### 5. Review & Sign Cryptographic Approval
 ```bash
-# Inspect proposed changes
+# Inspect recorded traces and diffs
 cairn-test review
 
-# Sign approval with your SSH key (locks LF SHA-256 hashes and promotes drafts)
+# Sign approval with your SSH key (locks LF SHA-256 baseline)
 cairn-test approve <test-id>
 ```
 
-### 5. Run the Suite
+### 6. Run the Test Suite
 ```bash
 # Standard dev run
 cairn-test run
@@ -112,17 +117,16 @@ cairn-test run --strict
 
 If you are an AI coding assistant working in this repository, follow these rules:
 
-### 1. Tests are Pure Declarative Data & Drafting Flow
-- When asked to create tests from the API specification, run:
+### 1. Draft Tests from Specification
+- When asked to create tests from the API specification, generate and promote them:
   ```bash
-  # Option A: Draft directly into tests/ as runnable tests
-  cairn-test draft --spec {spec_path} --tests
-
-  # Option B: Staged draft into proposals/ then promote
+  # Step 1: Draft proposals from OpenAPI spec
   cairn-test draft --spec {spec_path}
-  cairn-test review
+
+  # Step 2: Promote proposals into runnable tests
   cairn-test draft --promote
   ```
+  *(Or in one step: `cairn-test draft --spec {spec_path} --tests`)*
 - Tests are Pure Declarative Data: write declarative test definitions in `tests/<test-id>.test.yaml`.
 - Do not write executable test harnesses or test scripts. Tests must be valid `cairn-test.test/v1` documents.
 - Add the schema pragma at the top of every test file:

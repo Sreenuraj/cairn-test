@@ -103,40 +103,44 @@ cairn-test init --spec path/to/openapi.yaml
 ```
 *This automatically derives target API endpoints for `envs/local.yaml` from spec `servers`.*
 
-### 2. Draft Baseline Tests & Promotion Flow
-Generate deterministic tests directly from your contract:
+### 2. Draft Test Proposals from Specification
+Generate deterministic draft proposals directly from your contract:
 ```bash
-# Option A: Draft directly into tests/ as runnable tests (1-step)
-cairn-test draft --spec openapi.yaml --tests
-
-# Option B: Staged draft into proposals/, review, and promote (2-step governance)
 cairn-test draft --spec openapi.yaml
+```
+*(Tip: To draft directly into `tests/` in one step without staged proposals, run: `cairn-test draft --spec openapi.yaml --tests`)*
+
+### 3. Review & Promote Proposals into Tests
+Review pending draft proposals and promote them into active tests:
+```bash
+# Review staged proposals
 cairn-test review
+
+# Promote all draft proposals into runnable tests under tests/
 cairn-test draft --promote
 ```
-*(Or manually author declarative YAML tests in `tests/<id>.test.yaml`)*
 
-### 3. Record Baseline Observations
+### 4. Record Baseline Observations
 Execute against your live target service to record baseline traces as inert proposals:
 ```bash
-# Record all drafted tests:
+# Record all promoted tests:
 cairn-test record
 
 # Or record a specific test:
-cairn-test record tests/get-product-details.test.yaml
+cairn-test record tests/<test-id>.test.yaml
 ```
 
-### 4. Review and Sign Approval
+### 5. Review & Sign Cryptographic Approval
 Review the recorded trace and sign approval with your SSH key:
 ```bash
 # Review proposal diff
 cairn-test review
 
-# Sign approval (promotes drafts and locks LF SHA-256 covers)
-cairn-test approve get-product-details --key ~/.ssh/id_ed25519_sk
+# Sign approval (locks LF SHA-256 covers)
+cairn-test approve <test-id>
 ```
 
-### 5. Run the Suite
+### 6. Run the Test Suite
 Run in development or strict mode:
 ```bash
 # Run in dev mode

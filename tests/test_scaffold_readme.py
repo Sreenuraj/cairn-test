@@ -24,6 +24,8 @@ def test_scaffold_readme_and_agent_instructions():
         # Verify Human Quickstart sections
         assert "Quickstart for Humans" in content
         assert "cairn-test draft --spec my_api.yaml" in content
+        assert "Review & Promote Proposals into Tests" in content
+        assert "cairn-test draft --promote" in content
         assert "cairn-test record" in content
         assert "cairn-test approve" in content
 

@@ -121,6 +121,9 @@ def run_command(args: argparse.Namespace) -> int:
             print(json.dumps({"error": f"No test definitions found in {tests_dir}"}))
         else:
             print(f"No test definitions found in {tests_dir}")
+            props_dir = Path("proposals")
+            if props_dir.is_dir() and any(props_dir.glob("*.proposal.yaml")):
+                print("Tip: Found pending draft proposals. Run 'cairn-test draft --promote' to activate them into tests/.")
         return EXIT_PASS
 
     if getattr(args, "changed", False):
@@ -400,8 +403,20 @@ def record_command(args: argparse.Namespace) -> int:
         target_ids = set(args.id.split(","))
         disc_all = discover_tests(tests_dir)
         discovered = [t for t in disc_all if t["id"] in target_ids]
+        if not discovered:
+            from cairn_test.core.draft import promote_drafts
+            promoted = promote_drafts(repo_root, target_ids=list(target_ids))
+            if promoted:
+                disc_all = discover_tests(tests_dir)
+                discovered = [t for t in disc_all if t["id"] in target_ids]
     else:
         discovered = discover_tests(tests_dir)
+        if not discovered:
+            from cairn_test.core.draft import promote_drafts
+            promoted = promote_drafts(repo_root)
+            if promoted:
+                print(f"Auto-promoted {len(promoted)} draft proposal(s) into {tests_dir}/")
+                discovered = discover_tests(tests_dir)
 
     if not discovered:
         print(f"No matching tests found to record in {tests_dir}")
@@ -1059,6 +1074,10 @@ def status_command(args: argparse.Namespace) -> int:
         for q in health.quarantined_tests:
             print(f"  - {q['test_id']} ({q['reason']})")
         print("=" * 60)
+        if health.total_tests == 0:
+            props = list(Path("proposals").glob("*.proposal.yaml")) if Path("proposals").is_dir() else []
+            if props:
+                print(f"Tip: Found {len(props)} proposal(s) in proposals/. Run 'cairn-test draft --promote' to activate them.")
 
     return EXIT_PASS
 
