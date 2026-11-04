@@ -37,13 +37,14 @@ class SpecDrafter:
             method = op.method.upper()
             path = op.path
 
-            # 1. Happy path draft test
+            # 1. Happy path test definition
             expected_status = 201 if method == "POST" else 200
-            happy_test_id = f"draft_{op_id}_happy"
+            happy_test_id = f"{op_id}_happy"
+            tags = ["happy-path", op_id] if write_tests else ["draft", "happy-path", op_id]
             happy_test = {
                 "schema": "cairn-test.test/v1",
                 "id": happy_test_id,
-                "tags": ["draft", "happy-path", op_id],
+                "tags": tags,
                 "steps": [
                     {
                         "id": "step_0",
@@ -80,7 +81,7 @@ class SpecDrafter:
                 }
 
                 validate_document(proposal, "proposal.v1")
-                p_file = props_dir / f"{happy_test_id}.proposal.yaml"
+                p_file = props_dir / f"draft_{happy_test_id}.proposal.yaml"
                 with open(p_file, "w", encoding="utf-8") as f:
                     f.write("# yaml-language-server: $schema=../schemas/proposal.v1.json\n")
                     yaml.safe_dump(proposal, f, sort_keys=False)
@@ -91,6 +92,7 @@ class SpecDrafter:
 def promote_drafts(repo_root: Path, target_ids: list[str] | None = None) -> list[Path]:
     """
     Promote pending draft proposals from proposals/ into runnable test definitions in tests/.
+    Drops 'draft_' prefix from filenames, test IDs, and tags upon promotion.
     """
     props_dir = repo_root / "proposals"
     tests_dir = repo_root / "tests"
@@ -107,16 +109,30 @@ def promote_drafts(repo_root: Path, target_ids: list[str] | None = None) -> list
             if not isinstance(data, dict) or data.get("kind") != "draft":
                 continue
 
-            test_id = data.get("test") or prop_file.name.replace(".proposal.yaml", "")
-            if target_ids and test_id not in target_ids:
-                continue
+            raw_test_id = data.get("test") or prop_file.name.replace(".proposal.yaml", "")
+            clean_test_id = raw_test_id[6:] if raw_test_id.startswith("draft_") else raw_test_id
+
+            if target_ids:
+                matches = False
+                for tid in target_ids:
+                    clean_tid = tid[6:] if tid.startswith("draft_") else tid
+                    if clean_tid in (clean_test_id, raw_test_id):
+                        matches = True
+                        break
+                if not matches:
+                    continue
 
             draft_test = data.get("details", {}).get("draft_test")
             if not draft_test or not isinstance(draft_test, dict):
                 continue
 
+            # Ensure clean test ID without 'draft_' prefix and remove 'draft' tag
+            draft_test["id"] = clean_test_id
+            if "tags" in draft_test and isinstance(draft_test["tags"], list):
+                draft_test["tags"] = [t for t in draft_test["tags"] if t != "draft"]
+
             validate_document(draft_test, "test.v1")
-            dest_test_file = tests_dir / f"{test_id}.test.yaml"
+            dest_test_file = tests_dir / f"{clean_test_id}.test.yaml"
             with open(dest_test_file, "w", encoding="utf-8") as f:
                 f.write("# yaml-language-server: $schema=../schemas/test.v1.json\n")
                 yaml.safe_dump(draft_test, f, sort_keys=False)

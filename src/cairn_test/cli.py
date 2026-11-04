@@ -387,28 +387,39 @@ def record_command(args: argparse.Namespace) -> int:
             discovered = [td]
         else:
             # 1. Look in tests_dir for matching test ID or filename
+            target_clean = target[6:] if target.startswith("draft_") else target
             disc_all = discover_tests(tests_dir)
-            discovered = [t for t in disc_all if t.get("id") == target or t.get("id") == target.replace(".test.yaml", "")]
+            discovered = [
+                t for t in disc_all
+                if t.get("id") in (target, target_clean)
+                or t.get("id") == target.replace(".test.yaml", "")
+                or t.get("id") == target_clean.replace(".test.yaml", "")
+            ]
 
             # 2. If not found in tests_dir, check if target is a draft proposal in proposals/ to auto-promote
             if not discovered:
                 prop_file = repo_root / "proposals" / f"{target}.proposal.yaml"
+                if not prop_file.is_file():
+                    prop_file = repo_root / "proposals" / f"draft_{target_clean}.proposal.yaml"
+                if not prop_file.is_file():
+                    prop_file = repo_root / "proposals" / f"{target_clean}.proposal.yaml"
                 if prop_file.is_file():
                     from cairn_test.core.draft import promote_drafts
-                    promoted = promote_drafts(repo_root, target_ids=[target])
+                    promoted = promote_drafts(repo_root, target_ids=[target, target_clean])
                     if promoted:
                         discovered = [load_yaml(promoted[0])]
 
     elif args.id:
         target_ids = set(args.id.split(","))
+        target_ids_clean = {tid[6:] if tid.startswith("draft_") else tid for tid in target_ids}
         disc_all = discover_tests(tests_dir)
-        discovered = [t for t in disc_all if t["id"] in target_ids]
+        discovered = [t for t in disc_all if t["id"] in target_ids or t["id"] in target_ids_clean]
         if not discovered:
             from cairn_test.core.draft import promote_drafts
-            promoted = promote_drafts(repo_root, target_ids=list(target_ids))
+            promoted = promote_drafts(repo_root, target_ids=list(target_ids | target_ids_clean))
             if promoted:
                 disc_all = discover_tests(tests_dir)
-                discovered = [t for t in disc_all if t["id"] in target_ids]
+                discovered = [t for t in disc_all if t["id"] in target_ids or t["id"] in target_ids_clean]
     else:
         discovered = discover_tests(tests_dir)
         if not discovered:
@@ -607,33 +618,45 @@ def _approve_single_test(repo_root: Path, target: str, args: argparse.Namespace)
                 pass
         else:
             # 2. Check all test files in tests/ to find matching test ID
+            target_clean = target[6:] if target.startswith("draft_") else target
             for tf in sorted((repo_root / "tests").glob("*.test.yaml")):
                 try:
                     td = load_yaml(tf)
-                    if isinstance(td, dict) and td.get("id") == test_id:
+                    if isinstance(td, dict) and td.get("id") in (test_id, target_clean):
                         test_file = tf
+                        test_id = td.get("id")
                         break
                 except Exception:
                     pass
 
     if not test_file.is_file():
         # 3. Check if test_id matches a draft proposal in proposals/
+        target_clean = target[6:] if target.startswith("draft_") else target
         prop_file = repo_root / "proposals" / f"{test_id}.proposal.yaml"
+        if not prop_file.is_file():
+            prop_file = repo_root / "proposals" / f"draft_{target_clean}.proposal.yaml"
+        if not prop_file.is_file():
+            prop_file = repo_root / "proposals" / f"{target_clean}.proposal.yaml"
         if prop_file.is_file():
             from cairn_test.core.draft import promote_drafts
-            promoted = promote_drafts(repo_root, target_ids=[test_id])
+            promoted = promote_drafts(repo_root, target_ids=[test_id, target_clean])
             if promoted:
                 test_file = promoted[0]
+                td = load_yaml(test_file)
+                if isinstance(td, dict) and "id" in td:
+                    test_id = td["id"]
         if not test_file.is_file():
             print(f"Error: Test definition not found for '{test_id}' at {test_file}")
             return EXIT_CLI_ERROR
 
     test_def = load_yaml(test_file)
-    if not test_id and isinstance(test_def, dict):
-        test_id = test_def.get("id", target)
+    if isinstance(test_def, dict) and "id" in test_def:
+        test_id = test_def["id"]
 
     # Check if a proposal trace exists, promote it to traces/<test_id>.trace.yaml
     prop_trace = repo_root / "proposals" / f"{test_id}.trace.yaml"
+    if not prop_trace.is_file():
+        prop_trace = repo_root / "proposals" / f"draft_{test_id}.trace.yaml"
     dest_trace = repo_root / "traces" / f"{test_id}.trace.yaml"
     dest_trace.parent.mkdir(parents=True, exist_ok=True)
 

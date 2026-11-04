@@ -77,6 +77,14 @@ def test_draft_promotion_and_record_flow():
             test_files = list((work_dir / "tests").glob("*.test.yaml"))
             assert len(test_files) == len(proposals), "All draft proposals should be promoted to tests/"
 
+            # Verify that promoted files dropped the 'draft_' prefix from filename, test id, and tags
+            import yaml
+            for tf in test_files:
+                assert not tf.name.startswith("draft_"), f"Promoted test file {tf.name} should drop 'draft_' prefix"
+                td = yaml.safe_load(tf.read_text(encoding="utf-8"))
+                assert not td["id"].startswith("draft_"), f"Promoted test id {td['id']} should drop 'draft_' prefix"
+                assert "draft" not in td.get("tags", []), f"Promoted test tags should drop 'draft' tag: {td.get('tags')}"
+
             # 6. cairn-test status after promote -> >0 tests
             res_status_post = subprocess.run(
                 cairn_cmd + ["status", "--json"],
