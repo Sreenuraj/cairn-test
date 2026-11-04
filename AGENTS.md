@@ -47,6 +47,15 @@ Users and agents oscillate between positional arguments and flag options. Every 
   - Do NOT generate dummy data files (e.g. fake user credentials in `data/customers.yaml`). Scaffold only what is necessary and keep directories clean.
   - The sample test template (`tests/sample.test.yaml.example`) must use the first valid operation found in the target spec so recording exercises real API surface.
 
+### 2.5 Zero-Argument Ergonomics & Batch Approval
+* Commands that target tests (`approve`, `record`, `verify`) must never crash with uncaught tracebacks when called with no arguments.
+* `cairn-test approve`:
+  - When called without target arguments, scans for pending trace proposals.
+  - If exactly 1 pending proposal is found, auto-selects and approves it.
+  - If multiple pending proposals are found, displays them and advises using `cairn-test approve <id>` or `cairn-test approve --all`.
+  - If 0 proposals are found, prints an actionable tip to run `record` first.
+* `cairn-test approve --all`: Batch signs approvals for all pending proposals in one execution.
+
 ---
 
 ## 3. Engineering & Code Standards (Senior Dev Mode)
