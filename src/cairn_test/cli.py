@@ -562,15 +562,41 @@ def review_command(args: argparse.Namespace) -> int:
 
     return EXIT_PASS
 
-def approve_command(args: argparse.Namespace) -> int:
-    repo_root = Path(".")
-    raw_target = getattr(args, "id_flag", None) or args.id
-    test_id = raw_target
+def _find_approvable_candidates(repo_root: Path) -> list[str]:
+    candidates: list[str] = []
+    props_dir = repo_root / "proposals"
+    traces_dir = repo_root / "traces"
+
+    # 1. Proposals that have a recorded trace
+    if props_dir.is_dir():
+        for pfile in sorted(props_dir.glob("*.proposal.yaml")):
+            try:
+                pdata = load_yaml(pfile)
+                tid = pdata.get("test") or pfile.stem.replace(".proposal", "")
+            except Exception:
+                tid = pfile.stem.replace(".proposal", "")
+            if (props_dir / f"{tid}.trace.yaml").is_file() or (traces_dir / f"{tid}.trace.yaml").is_file():
+                if tid and tid not in candidates:
+                    candidates.append(tid)
+
+    # 2. Recorded traces that lack approvals in approvals/
+    if not candidates and traces_dir.is_dir():
+        appr_dir = repo_root / "approvals"
+        for tfile in sorted(traces_dir.glob("*.trace.yaml")):
+            tid = tfile.stem.replace(".trace", "")
+            if not (appr_dir / f"{tid}.approval.yaml").is_file():
+                if tid and tid not in candidates:
+                    candidates.append(tid)
+
+    return candidates
+
+def _approve_single_test(repo_root: Path, target: str, args: argparse.Namespace) -> int:
+    test_id = target
     test_file = repo_root / "tests" / f"{test_id}.test.yaml"
 
     if not test_file.is_file():
-        # 1. Check if raw_target is a direct file path (e.g. tests/sample.test.yaml)
-        target_path = Path(raw_target)
+        # 1. Check if target is a direct file path (e.g. tests/sample.test.yaml)
+        target_path = Path(target)
         if target_path.is_file():
             try:
                 td = load_yaml(target_path)
@@ -604,7 +630,7 @@ def approve_command(args: argparse.Namespace) -> int:
 
     test_def = load_yaml(test_file)
     if not test_id and isinstance(test_def, dict):
-        test_id = test_def.get("id", raw_target)
+        test_id = test_def.get("id", target)
 
     # Check if a proposal trace exists, promote it to traces/<test_id>.trace.yaml
     prop_trace = repo_root / "proposals" / f"{test_id}.trace.yaml"
@@ -683,6 +709,48 @@ def approve_command(args: argparse.Namespace) -> int:
         prop_f.unlink(missing_ok=True)
 
     print(f"Successfully approved '{test_id}' -> {appr_file}")
+    return EXIT_PASS
+
+def approve_command(args: argparse.Namespace) -> int:
+    repo_root = Path(".")
+    raw_target = getattr(args, "id_flag", None) or args.id
+
+    targets: list[str] = []
+    if not raw_target:
+        candidates = _find_approvable_candidates(repo_root)
+        if not candidates:
+            print("Error: No test ID specified, and no recorded traces or proposals ready for approval.")
+            print("Tip: Run 'cairn-test record' to record baseline traces before approving.")
+            print("Usage: cairn-test approve <test-id> (or cairn-test approve --all)")
+            return EXIT_CLI_ERROR
+        elif len(candidates) == 1:
+            print(f"Auto-selected single pending proposal to approve: '{candidates[0]}'")
+            targets = [candidates[0]]
+        else:
+            if getattr(args, "all", False):
+                targets = candidates
+            else:
+                print(f"Found {len(candidates)} pending proposals ready to approve. Please specify a test ID or pass --all:")
+                for tid in candidates[:10]:
+                    print(f"  - {tid}")
+                if len(candidates) > 10:
+                    print(f"  ... and {len(candidates) - 10} more")
+                print("\nUsage:")
+                print("  cairn-test approve <test-id>")
+                print("  cairn-test approve --all")
+                return EXIT_CLI_ERROR
+    else:
+        targets = [t.strip() for t in raw_target.split(",") if t.strip()]
+
+    success_count = 0
+    for target in targets:
+        code = _approve_single_test(repo_root, target, args)
+        if code != EXIT_PASS:
+            return code
+        success_count += 1
+
+    if len(targets) > 1:
+        print(f"\nSuccessfully approved {success_count} tests.")
     return EXIT_PASS
 
 def verify_command(args: argparse.Namespace) -> int:
@@ -1216,6 +1284,7 @@ def main() -> None:
     appr_parser = subparsers.add_parser("approve", help="Sign cryptographic approval for a test")
     appr_parser.add_argument("id", nargs="?", type=str, help="Test ID to approve")
     appr_parser.add_argument("--id", dest="id_flag", type=str, help="Test ID to approve")
+    appr_parser.add_argument("--all", action="store_true", help="Approve all pending proposals")
     appr_parser.add_argument("--key", type=str, help="Path to OpenSSH private key")
     appr_parser.add_argument("--identity", type=str, help="Signer identity / name")
     appr_parser.add_argument("--labels", type=str, help="Extra review labels (comma-separated)")

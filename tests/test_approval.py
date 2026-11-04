@@ -139,6 +139,65 @@ def test_signing_and_verification_workflow():
         assert valid_tamp is False
         assert reason_tamp == "tampered"
 
+def test_approve_cli_no_args_and_candidate_discovery():
+    import sys
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        (root / "tests").mkdir()
+        (root / "traces").mkdir()
+        (root / "proposals").mkdir()
+        (root / "approvals").mkdir()
+
+        key_path, pub_key = create_test_keypair(root, "bob")
+        os.environ["CAIRN_ALLOWED_SIGNERS"] = f"bob namespaces=\"cairn-test\" {pub_key}\n"
+
+        cmd = [sys.executable, "-m", "cairn_test.cli"]
+        env = {
+            "PATH": os.environ["PATH"],
+            "PYTHONPATH": f"{Path(__file__).resolve().parent.parent}/src:{Path(__file__).resolve().parent.parent}",
+            "CAIRN_SIGNING_KEY": str(key_path),
+            "CAIRN_ALLOWED_SIGNERS": os.environ["CAIRN_ALLOWED_SIGNERS"],
+            "USER": "bob",
+        }
+
+        # 1. cairn-test approve with no args and 0 proposals -> friendly error, NO TypeError traceback
+        res_empty = subprocess.run(cmd + ["approve"], capture_output=True, text=True, cwd=str(root), env=env)
+        assert res_empty.returncode == 4
+        assert "TypeError" not in res_empty.stderr
+        assert "No test ID specified" in res_empty.stdout
+
+        # 2. Add single test and proposal trace
+        t_file = root / "tests" / "test-single.test.yaml"
+        t_file.write_text("schema: cairn-test.test/v1\nid: test-single\n")
+        tr_data = {"schema": "cairn-test.trace/v1", "test": "test-single", "spec_hash": "a" * 64, "env_profile": "local", "steps": []}
+        with open(root / "proposals" / "test-single.trace.yaml", "w") as f:
+            yaml.safe_dump(tr_data, f)
+        prop_data = {"schema": "cairn-test.proposal/v1", "id": "p1", "test": "test-single", "status": "pending", "details": {}}
+        with open(root / "proposals" / "test-single.proposal.yaml", "w") as f:
+            yaml.safe_dump(prop_data, f)
+
+        # 3. cairn-test approve with no args -> auto-selects single pending proposal
+        res_single = subprocess.run(cmd + ["approve"], capture_output=True, text=True, cwd=str(root), env=env)
+        assert res_single.returncode == 0
+        assert "Auto-selected single pending proposal to approve: 'test-single'" in res_single.stdout
+        assert (root / "approvals" / "test-single.approval.yaml").is_file()
+
+        # 4. cairn-test approve --all with multiple proposals
+        for idx in [1, 2]:
+            tid = f"batch-test-{idx}"
+            (root / "tests" / f"{tid}.test.yaml").write_text(f"schema: cairn-test.test/v1\nid: {tid}\n")
+            tr_d = {"schema": "cairn-test.trace/v1", "test": tid, "spec_hash": "a" * 64, "env_profile": "local", "steps": []}
+            with open(root / "proposals" / f"{tid}.trace.yaml", "w") as f:
+                yaml.safe_dump(tr_d, f)
+            with open(root / "proposals" / f"{tid}.proposal.yaml", "w") as f:
+                yaml.safe_dump({"schema": "cairn-test.proposal/v1", "id": f"p-{idx}", "test": tid, "status": "pending", "details": {}}, f)
+
+        res_all = subprocess.run(cmd + ["approve", "--all"], capture_output=True, text=True, cwd=str(root), env=env)
+        assert res_all.returncode == 0
+        assert "Successfully approved 2 tests" in res_all.stdout
+        assert (root / "approvals" / "batch-test-1.approval.yaml").is_file()
+        assert (root / "approvals" / "batch-test-2.approval.yaml").is_file()
+
 if __name__ == "__main__":
     test_line_ending_normalization()
     test_canonicalize_payload()
