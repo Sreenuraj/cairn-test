@@ -175,6 +175,7 @@ T6.1 and T6.2 (core subset) start in parallel with Phase 1; the rest of the cata
 - [ ] **T8.1 Interactive tutorial CLI (`cairn-test tutorial`)**: Built-in command starting an ephemeral local reference target API in the background and interactively guiding a developer through authoring, recording, review diffing, OpenSSH approval signing, and strict replay with visual terminal feedback.
 - [ ] **T8.2 IDE YAML Schema Integration**: Add JSON Schema `$schema` pragmas (`# yaml-language-server: $schema=...`) to `init` and `draft` templates, alongside a `.vscode/settings.json` generator mapping `schemas/*.v1.json` for real-time validation and autocompletion in VS Code, JetBrains IDEs, and Cursor.
 - [ ] **T8.3 Plugin Developer Kit (PDK) Template & Scaffolder**: Create a standalone template repository and CLI command (`cairn-test plugin init <name>`) implementing the 5 domain-neutral contracts (`StepExecutor`, `StepObserver`, `Fingerprinter`, `AssertionType`, `EvidenceCollector`) with an assert-based self-check test suite.
+- [ ] **T8.4 Remote Server & Containerized Runner**: Provide official multi-stage `Dockerfile` and headless remote CI/cron automation workflow demonstrating zero-secret verification (public-key-only trust root via `CAIRN_ALLOWED_SIGNERS`) targeting remote endpoints.
 
 ## Notes for implementation
 

@@ -437,6 +437,27 @@ To minimize onboarding friction as the framework evolves beyond v1, three develo
    - `EvidenceCollector`: automated secrets/PII masking and artifact serialization.
    Includes an isolated, assert-based self-check test suite verifying contract adherence without requiring `cairn_test.core` modifications.
 
+### 13.2 Remote Server & Headless Automation Architecture
+
+`cairn-test` is explicitly engineered for headless, automated execution on remote servers, CI/CD runners, container clusters (Kubernetes / ECS), and scheduled background workers:
+
+1. **Remote Target Services**:
+   Tests are network-agnostic and target services anywhere on the internet or intranet. The execution target is driven by environment profiles in `cairn.yaml` (e.g., `local`, `staging`, `production`, `ci`) or the `--base-url` flag. Headers, tokens, and endpoints can be customized per remote environment without modifying test YAML files.
+
+2. **Headless Execution & Standard Exit Codes**:
+   The engine requires no terminal GUI, display server, or browser (in v1). It emits standard, deterministic POSIX exit codes:
+   - `0`: All tests passed.
+   - `1`: At least one test had a behavioral failure (`FAIL`).
+   - `2`: At least one test had contract drift (`DRIFT`).
+   - `3`: Execution error or approval verification failure (`ERROR`).
+   This allows remote schedulers, cron jobs, and CI systems to trigger distinct downstream pipelines (e.g. Alerting on `FAIL` vs triggering pull request heal workflows on `DRIFT`).
+
+3. **Asymmetric Security on Remote Servers**:
+   A primary security invariant of `cairn-test` is that **remote servers do not need private signing keys**. The human private key (`ed25519-sk` / Secure Enclave) stays on the engineer's workstation. Remote servers only require the public trust root (via `CAIRN_ALLOWED_SIGNERS`), allowing remote CI runners and automated cron jobs to enforce strict verification without exposing signing credentials to compromise.
+
+4. **Containerized Execution (Docker / OCI)**:
+   A lightweight, multi-stage Docker image packaging `cairn-test` with Python 3.12 and OpenSSH verification utilities enables running test suites inside Kubernetes cron jobs, AWS Fargate, or cloud runners with isolated network boundaries.
+
 ## 14. API plugin (v1)
 
 - OpenAPI 3.0/3.1 ingestion; normalized per-operation hashing including `$ref`s.
