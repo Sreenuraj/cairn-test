@@ -193,6 +193,7 @@ Full details in the [Checkpoint E2 Comparison Report](docs/comparison_report.md)
 
 ## Detailed Documentation
 
+* [Enterprise & Multi-Developer Guide](docs/enterprise-guide.md): Multi-developer workflows, distributed SSH cryptographic signing, zero-secret remote CI/CD pipelines, containerization, and cross-team contract drift management.
 * [How-To Guide & Recipes](docs/how-to-guide.md): Complete step-by-step tutorial, YAML patterns (auth, chains, CEL property assertions, fixtures, CLI steps), and CI integration.
 * [Core Vision & Philosophy](docs/core-vision.md): Why testing must change in the AI era.
 * [Architecture & Specification](docs/plan.md): Normative specification, schemas, decision tables, and healing algorithms.

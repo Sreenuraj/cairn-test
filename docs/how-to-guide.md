@@ -478,3 +478,15 @@ Add to your `claude_desktop_config.json` or `.cursor/mcp.json`:
 * `cairn_impact`: Query affected tests for a given spec diff.
 * `cairn_status`: Check test suite health, flakiness rate, and drift frequency.
 * `cairn_propose`: Generate a candidate proposal file in `proposals/` for human review (agent cannot approve).
+
+---
+
+## 7. Enterprise & Multi-Developer Workflows
+
+For guidance on scaling `cairn-test` across multiple engineering teams, see the [Enterprise & Multi-Developer Guide](enterprise-guide.md):
+- Managing distributed hardware keys and `.cairn/allowed_signers`
+- Modular test repositories without Git merge conflicts
+- Headless, zero-secret remote CI/CD runners (GitHub Actions, GitLab CI, Jenkins)
+- Cross-team microservice contract drift and blast-radius management
+- Production synthetic canaries and alerting models
+
