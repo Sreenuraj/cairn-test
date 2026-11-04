@@ -69,7 +69,15 @@ def test_init_remote_spec_download():
             dest_spec = Path(tmp_dir) / "remote_spec.yaml"
             assert dest_spec.is_file(), "Remote spec was not downloaded to destination"
             assert dest_spec.read_bytes() == spec_content
-            print("Remote OpenAPI spec download in cairn-test init verified successfully.")
+
+            # Verify envs/local.yaml was automatically populated with derived URL
+            local_env = (Path(tmp_dir) / "envs" / "local.yaml").read_text(encoding="utf-8")
+            assert f"http://127.0.0.1:{port}" in local_env, f"Expected server URL in local.yaml: {local_env}"
+
+            # Verify NO harmful dummy customer data was generated
+            assert not (Path(tmp_dir) / "data" / "customers.yaml").exists()
+
+            print("Remote OpenAPI spec download and env derivation in cairn-test init verified successfully.")
     finally:
         server.shutdown()
 

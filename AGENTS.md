@@ -41,6 +41,12 @@ Users and agents oscillate between positional arguments and flag options. Every 
 * `cairn-test approve <draft_id>` automatically promotes the draft proposal into `tests/` upon signing.
 * Always print actionable hints in human CLI outputs (e.g. recommending `cairn-test draft --promote` or `cairn-test record`).
 
+### 2.4 Spec-Aware Scaffolding & Zero Dummy Pollution
+* When scaffolding a project via `cairn-test init --spec <url_or_file>`:
+  - Base URLs for `envs/local.yaml` and `envs/staging.yaml` MUST be automatically derived from OpenAPI `servers` and/or the remote URL origin rather than hardcoding dummy placeholders (`localhost:8000`).
+  - Do NOT generate dummy data files (e.g. fake user credentials in `data/customers.yaml`). Scaffold only what is necessary and keep directories clean.
+  - The sample test template (`tests/sample.test.yaml.example`) must use the first valid operation found in the target spec so recording exercises real API surface.
+
 ---
 
 ## 3. Engineering & Code Standards (Senior Dev Mode)

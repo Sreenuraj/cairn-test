@@ -81,7 +81,9 @@ def init_command(args: argparse.Namespace) -> int:
     target_dir = Path(args.dir or ".").resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
     spec_arg = args.spec
+    orig_spec_url = None
     if spec_arg and (spec_arg.startswith("http://") or spec_arg.startswith("https://")):
+        orig_spec_url = spec_arg
         try:
             local_spec_path = fetch_remote_spec(spec_arg, target_dir)
             spec_arg = str(local_spec_path)
@@ -89,12 +91,16 @@ def init_command(args: argparse.Namespace) -> int:
             print(f"Error downloading remote specification from {spec_arg}: {e}", file=sys.stderr)
             return EXIT_CLI_ERROR
 
-    res = init_project(target_dir, spec_path=spec_arg)
+    res = init_project(target_dir, spec_path=spec_arg, spec_url=orig_spec_url)
     if args.json:
         print(json.dumps(res, indent=2))
     else:
         print(f"Initialized cairn-test project in {res['root']}")
         print(f"Spec: {res['spec']}")
+        if "local_url" in res:
+            print(f"Target Environment (local): {res['local_url']}")
+        if "staging_url" in res:
+            print(f"Target Environment (staging): {res['staging_url']}")
         print("Created directories: " + ", ".join(res["directories"]))
         print(f"Scaffolded practitioner & AI agent guide in README.md")
     return EXIT_PASS

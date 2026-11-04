@@ -44,23 +44,13 @@ masking:
 """
 
 DEFAULT_LOCAL_ENV = """# Local environment configuration
-base_url: "http://127.0.0.1:8000"
+base_url: "{base_url}"
 timeout_ms: 5000
 """
 
 DEFAULT_STAGING_ENV = """# Staging environment configuration
-base_url: "https://staging.example.com"
+base_url: "{base_url}"
 timeout_ms: 10000
-"""
-
-DEFAULT_DATA_CUSTOMER = """# Reusable customer test data
-guest:
-  user: "guest_user"
-  password: "guest_password_123"
-
-alice:
-  user: "alice"
-  password: "password123"
 """
 
 DEFAULT_SAMPLE_TEST = """# yaml-language-server: $schema=../schemas/test.v1.json
@@ -70,8 +60,8 @@ tags:
   - "smoke"
 steps:
   - id: "check"
-    op: "getHealth"
-    args: {}
+    op: "{first_op}"
+    args: {{}}
 expect:
   - after: "check"
     status: 200
@@ -84,9 +74,9 @@ This test suite is powered by [cairn-test](https://github.com/Sreenuraj/cairn-te
 ## 🚀 Quickstart for Humans
 
 ### 1. Configure Target Service
-Update your target endpoint in `envs/local.yaml`:
+Your target endpoint in `envs/local.yaml` was automatically populated from your OpenAPI specification:
 ```yaml
-base_url: "http://localhost:8000"  # or your remote staging URL
+base_url: "{local_url}"
 timeout_ms: 5000
 ```
 
@@ -185,7 +175,85 @@ VSCODE_SETTINGS = {
     }
 }
 
-def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, Any]:
+def resolve_spec_servers(spec_file: Path | None, remote_url: str | None = None) -> tuple[str, str, str]:
+    """
+    Extract best-guess base URLs for (local_url, staging_url, first_op) from an OpenAPI spec and/or remote URL.
+    Returns (local_url, staging_url, first_op).
+    """
+    local_url = "http://127.0.0.1:8000"
+    staging_url = "https://staging.example.com"
+    first_op = "getHealth"
+
+    origin = None
+    if remote_url and (remote_url.startswith("http://") or remote_url.startswith("https://")):
+        import urllib.parse
+        p = urllib.parse.urlparse(remote_url)
+        origin = f"{p.scheme}://{p.netloc}"
+
+    spec_servers: list[str] = []
+    if spec_file and spec_file.is_file():
+        try:
+            content = spec_file.read_text(encoding="utf-8")
+            data = yaml.safe_load(content)
+            if isinstance(data, dict):
+                # OpenAPI 3.x servers
+                if "servers" in data and isinstance(data["servers"], list):
+                    for s in data["servers"]:
+                        if isinstance(s, dict) and "url" in s and s["url"]:
+                            u = s["url"].strip()
+                            if u.startswith("/"):
+                                if origin:
+                                    spec_servers.append(f"{origin}{u}")
+                            else:
+                                spec_servers.append(u)
+                # Swagger 2.0 host & basePath
+                elif "host" in data and data["host"]:
+                    schemes = data.get("schemes", ["https"])
+                    scheme = schemes[0] if schemes else "https"
+                    host = data["host"]
+                    base_path = data.get("basePath", "")
+                    spec_servers.append(f"{scheme}://{host}{base_path}".rstrip("/"))
+
+                # Discover first valid operationId for sample test
+                paths = data.get("paths", {})
+                if isinstance(paths, dict):
+                    for p_path, p_item in paths.items():
+                        if isinstance(p_item, dict):
+                            for m_name, m_op in p_item.items():
+                                if m_name.lower() in ("get", "post", "put", "delete", "patch") and isinstance(m_op, dict):
+                                    op_id = m_op.get("operationId")
+                                    if op_id:
+                                        first_op = op_id
+                                        break
+                        if first_op != "getHealth":
+                            break
+        except Exception:
+            pass
+
+    if origin and origin not in spec_servers:
+        spec_servers.append(origin)
+
+    if spec_servers:
+        local_cand = [s for s in spec_servers if "localhost" in s or "127.0.0.1" in s]
+        remote_cand = [s for s in spec_servers if not ("localhost" in s or "127.0.0.1" in s)]
+
+        if origin:
+            # If initialized from remote URL, prioritize remote origin so record/run works immediately
+            local_url = origin
+            staging_url = remote_cand[0] if remote_cand else origin
+        elif local_cand and remote_cand:
+            local_url = local_cand[0]
+            staging_url = remote_cand[0]
+        elif remote_cand:
+            local_url = remote_cand[0]
+            staging_url = remote_cand[1] if len(remote_cand) > 1 else remote_cand[0]
+        elif local_cand:
+            local_url = local_cand[0]
+            staging_url = local_cand[1] if len(local_cand) > 1 else local_cand[0]
+
+    return local_url, staging_url, first_op
+
+def init_project(target_dir: Path, spec_path: str | None = None, spec_url: str | None = None) -> dict[str, Any]:
     """Scaffold standard cairn-test project directory layout."""
     target_dir = Path(target_dir).resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -222,6 +290,7 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
 
     # Handle spec file
     final_spec_path = "openapi.yaml"
+    dest_spec_path = None
     if spec_path:
         src_spec = Path(spec_path).expanduser().resolve()
         if src_spec.is_file():
@@ -229,36 +298,38 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
             if src_spec != dest_spec:
                 shutil.copy2(src_spec, dest_spec)
             final_spec_path = src_spec.name
+            dest_spec_path = dest_spec
         else:
             final_spec_path = str(spec_path)
+
+    local_url, staging_url, first_op = resolve_spec_servers(dest_spec_path, remote_url=spec_url or spec_path)
 
     # Write cairn-test.yaml
     cfg_file = target_dir / "cairn-test.yaml"
     if not cfg_file.exists():
         cfg_file.write_text(DEFAULT_CONFIG_CONTENT.format(spec_path=final_spec_path), encoding="utf-8")
 
-    # Write default env files
+    # Write default env files populated with derived URLs
     local_env = target_dir / "envs" / "local.yaml"
     if not local_env.exists():
-        local_env.write_text(DEFAULT_LOCAL_ENV, encoding="utf-8")
+        local_env.write_text(DEFAULT_LOCAL_ENV.format(base_url=local_url), encoding="utf-8")
 
     staging_env = target_dir / "envs" / "staging.yaml"
     if not staging_env.exists():
-        staging_env.write_text(DEFAULT_STAGING_ENV, encoding="utf-8")
+        staging_env.write_text(DEFAULT_STAGING_ENV.format(base_url=staging_url), encoding="utf-8")
 
-    # Write default data file
-    cust_data = target_dir / "data" / "customers.yaml"
-    if not cust_data.exists():
-        cust_data.write_text(DEFAULT_DATA_CUSTOMER, encoding="utf-8")
-
-    # Write default sample test template with schema pragma
+    # Write default sample test template with schema pragma and actual discovered operation
     sample_test = target_dir / "tests" / "sample.test.yaml.example"
     if not sample_test.exists():
-        sample_test.write_text(DEFAULT_SAMPLE_TEST, encoding="utf-8")
+        sample_test.write_text(DEFAULT_SAMPLE_TEST.format(first_op=first_op), encoding="utf-8")
 
     # Write scaffold README with human quickstart & AI agent instructions
     readme_file = target_dir / "README.md"
-    readme_content = DEFAULT_SCAFFOLD_README.format(project_name=target_dir.name, spec_path=final_spec_path)
+    readme_content = DEFAULT_SCAFFOLD_README.format(
+        project_name=target_dir.name,
+        spec_path=final_spec_path,
+        local_url=local_url,
+    )
     if not readme_file.exists():
         readme_file.write_text(readme_content, encoding="utf-8")
     else:
@@ -270,6 +341,8 @@ def init_project(target_dir: Path, spec_path: str | None = None) -> dict[str, An
         "status": "initialized",
         "root": str(target_dir),
         "spec": final_spec_path,
+        "local_url": local_url,
+        "staging_url": staging_url,
         "directories": [str(d.relative_to(target_dir)) for d in dirs],
     }
 
